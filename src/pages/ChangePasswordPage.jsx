@@ -12,15 +12,15 @@ export default function ChangePasswordPage() {
   if (!session) return <Navigate to="/dang-nhap" replace state={{ from: '/doi-mat-khau' }} />
   if (session.role === 'admin') return <Navigate to="/admin" replace />
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     setError('')
     if (form.newPassword !== form.confirm) return setError('Mật khẩu xác nhận không khớp.')
     try {
-      changePassword({ currentPassword: form.currentPassword, newPassword: form.newPassword })
+      await changePassword({ currentPassword: form.currentPassword, newPassword: form.newPassword })
       navigate('/tai-khoan', { replace: true })
     } catch (e) {
-      setError(e.message || 'Không thể đổi mật khẩu.')
+      setError(e.response?.data?.detail || e.message || 'Không thể đổi mật khẩu.')
     }
   }
 

@@ -130,3 +130,4 @@ export default function LocationDetailContent({ location, onNavigate, onPanorama
     </div>
   )
 }
+

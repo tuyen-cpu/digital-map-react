@@ -4,3 +4,7 @@ dist
 .env.*
 .DS_Store
 *.log
+
+# Local env
+.env.local
+.env.*.local

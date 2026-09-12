@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
 import { isValidVietnamMobilePhone } from '../utils/phone'
-import MediaImage from './MediaImage'
+import { apiGetReviews } from '../services/reviewService'
 
 function Stars({ value = 0, size = 16 }) {
   return <span className="inline-flex items-center gap-0.5" aria-label={`${value} trên 5 sao`}>{[1, 2, 3, 4, 5].map((star) => <Star key={star} size={size} className={star <= Math.round(value) ? 'fill-sky-400 text-sky-400' : 'text-blue-100'} />)}</span>
@@ -19,15 +19,15 @@ function ReviewReplyBox({ review, autoOpen = false }) {
     if (autoOpen && session) setOpen(true)
   }, [autoOpen, session?.username])
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     setNotice('')
     try {
-      replyToReview(review.id, text)
+      await replyToReview(review.id, text)
       setText('')
       setOpen(false)
     } catch (e) {
-      setNotice(e.message || 'Không thể gửi phản hồi.')
+      setNotice(e.response?.data?.detail || e.message || 'Không thể gửi phản hồi.')
     }
   }
 
@@ -45,9 +45,20 @@ function ReviewReplyBox({ review, autoOpen = false }) {
 }
 
 export default function LocationReviews({ location }) {
-  const { session, reviews, addReview } = useAppState()
+  const { session, reviews, setReviews, addReview } = useAppState()
   const route = useLocation()
   const targetReviewId = useMemo(() => new URLSearchParams(route.search).get('review') || '', [route.search])
+
+  // Fetch reviews for this location on mount
+  useEffect(() => {
+    apiGetReviews(location.id).then((data) => {
+      setReviews((prev) => {
+        const other = prev.filter((r) => r.locationId !== location.id)
+        return [...other, ...data]
+      })
+    }).catch(() => {})
+  }, [location.id])
+
   const locationReviews = useMemo(() => reviews.filter((review) => review.locationId === location.id).sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt))), [location.id, reviews])
   const mine = session?.username ? locationReviews.find((review) => review.username === session.username) : null
   const [rating, setRating] = useState(mine?.rating || 5)
@@ -68,13 +79,13 @@ export default function LocationReviews({ location }) {
     return () => window.clearTimeout(timer)
   }, [location.id, locationReviews, targetReviewId])
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     try {
-      addReview(location.id, { rating, comment })
+      await addReview(location.id, { rating, comment })
       setNotice(mine ? 'Đã cập nhật đánh giá của bạn.' : 'Cảm ơn bạn đã đánh giá địa điểm.')
     } catch (e) {
-      setNotice(e.message || 'Không thể lưu đánh giá.')
+      setNotice(e.response?.data?.detail || e.message || 'Không thể lưu đánh giá.')
     }
   }
 

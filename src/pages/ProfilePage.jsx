@@ -46,12 +46,12 @@ export default function ProfilePage() {
   if (!session) return <Navigate to="/dang-nhap" replace state={{ from: '/tai-khoan' }} />
   if (session.role === 'admin') return <Navigate to="/admin" replace />
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     setNotice('')
     if (!isValidVietnamMobilePhone(form.phone)) return setNotice(VIETNAM_PHONE_HELP)
     try {
-      updateProfile(form)
+      await updateProfile(form)
       setNotice('Đã cập nhật thông tin tài khoản.')
     } catch (e) {
       setNotice(e.message || 'Không cập nhật được tài khoản.')
@@ -74,11 +74,11 @@ export default function ProfilePage() {
     }
   }
 
-  const createReminder = (event) => {
+  const createReminder = async (event) => {
     event.preventDefault()
     setNotice('')
     try {
-      addReminder(reminderForm)
+      await addReminder(reminderForm)
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {})
       setNotice('Đã tạo lịch nhắc. Nếu trình duyệt cho phép thông báo, website sẽ nhắc khi đang mở.')
       setReminderForm({ locationId: '', note: '', scheduledAt: localInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000)) })
@@ -120,7 +120,7 @@ export default function ProfilePage() {
           <div className="space-y-6">
             <section className="rounded-3xl border border-blue-100 bg-white p-5 shadow-card sm:p-6">
               <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Lịch sử</p><h2 className="mt-1 text-2xl font-black text-blue-950">Các nơi đã xem / dẫn đường / đã đến</h2></div><span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-brand-700">{history.length} địa điểm</span></div>
-              <div className="mt-4 max-h-[460px] space-y-2 overflow-y-auto pr-1">{history.map((entry) => { const location = locationById.get(entry.locationId); if (!location) return null; return <article key={entry.id} className="rounded-2xl border border-blue-100 p-3 sm:p-4"><div className="flex gap-3"><MediaImage src={location.image} alt="" className="h-16 w-20 shrink-0 rounded-xl bg-blue-50 object-cover" /><div className="min-w-0 flex-1"><Link to={`/place.html?id=${encodeURIComponent(location.id)}`} className="line-clamp-1 text-sm font-black text-blue-950 hover:text-brand-700">{location.name}</Link><p className="mt-1 text-[11px] text-blue-500">Hoạt động gần nhất: {dateTime(entry.lastActivityAt)}</p><div className="mt-2 flex flex-wrap gap-1.5">{entry.viewCount > 0 && <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-600">Xem {entry.viewCount} lần</span>}{entry.routeCount > 0 && <span className="rounded-full bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-700">Dẫn đường {entry.routeCount} lần</span>}{entry.visitedAt && <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">Đã đến</span>}</div></div></div><div className="mt-3 flex flex-wrap gap-2"><Link to={`/ban-do-du-lich?routeTo=${encodeURIComponent(location.id)}&nav=1`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-black text-white"><Navigation size={13} />Dẫn đường</Link>{!entry.visitedAt && <button type="button" onClick={() => recordTravel(location.id, 'visited')} className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 px-3 py-2 text-xs font-black text-blue-700 hover:bg-blue-50"><CheckCircle2 size={13} />Đánh dấu đã đến</button>}<button type="button" onClick={() => removeTravelHistory(entry.id)} className="ml-auto rounded-lg p-2 text-blue-300 hover:bg-blue-50 hover:text-blue-600" title="Xóa khỏi lịch sử"><Trash2 size={15} /></button></div></article>})}{!history.length && <div className="rounded-2xl border border-dashed border-blue-200 p-7 text-center text-sm text-blue-500">Chưa có lịch sử. Khi bạn xem chi tiết hoặc bắt đầu dẫn đường, địa điểm sẽ được lưu vào đây.</div>}</div>
+              <div className="mt-4 max-h-[460px] space-y-2 overflow-y-auto pr-1">{history.map((entry) => { const location = locationById.get(entry.locationId); if (!location) return null; return <article key={entry.id} className="rounded-2xl border border-blue-100 p-3 sm:p-4"><div className="flex gap-3"><MediaImage src={location.image} alt="" className="h-16 w-20 shrink-0 rounded-xl bg-blue-50 object-cover" /><div className="min-w-0 flex-1"><Link to={`/place.html?id=${encodeURIComponent(location.id)}`} className="line-clamp-1 text-sm font-black text-blue-950 hover:text-brand-700">{location.name}</Link><p className="mt-1 text-[11px] text-blue-500">Hoạt động gần nhất: {dateTime(entry.lastActivityAt)}</p><div className="mt-2 flex flex-wrap gap-1.5">{entry.viewCount > 0 && <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-600">Xem {entry.viewCount} lần</span>}{entry.routeCount > 0 && <span className="rounded-full bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-700">Dẫn đường {entry.routeCount} lần</span>}{entry.visitedAt && <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">Đã đến</span>}</div></div></div><div className="mt-3 flex flex-wrap gap-2"><Link to={`/ban-do-du-lich?routeTo=${encodeURIComponent(location.id)}&nav=1`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-black text-white"><Navigation size={13} />Dẫn đường</Link>{!entry.visitedAt && <button type="button" onClick={() => recordTravel(location.id, "visited")} className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 px-3 py-2 text-xs font-black text-blue-700 hover:bg-blue-50"><CheckCircle2 size={13} />Đánh dấu đã đến</button>}<button type="button" onClick={() => removeTravelHistory(entry.id).catch(() => {})} className="ml-auto rounded-lg p-2 text-blue-300 hover:bg-blue-50 hover:text-blue-600" title="Xóa khỏi lịch sử"><Trash2 size={15} /></button></div></article>})}{!history.length && <div className="rounded-2xl border border-dashed border-blue-200 p-7 text-center text-sm text-blue-500">Chưa có lịch sử. Khi bạn xem chi tiết hoặc bắt đầu dẫn đường, địa điểm sẽ được lưu vào đây.</div>}</div>
             </section>
 
             <section className="rounded-3xl border border-blue-100 bg-white p-5 shadow-card sm:p-6">
@@ -131,7 +131,7 @@ export default function ProfilePage() {
                 <label className="block md:col-span-2"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Ghi chú</span><input value={reminderForm.note} onChange={(e) => setReminderForm({ ...reminderForm, note: e.target.value })} placeholder="Ví dụ: đi cùng gia đình, xuất phát lúc 7 giờ..." className={inputClass} /></label>
                 <button disabled={!reminderForm.locationId} type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50 md:col-span-2"><CalendarClock size={17} />Tạo lịch nhắc</button>
               </form>
-              <div className="mt-4 space-y-2">{currentReminders.sort((a, b) => String(a.scheduledAt).localeCompare(String(b.scheduledAt))).map((reminder) => { const location = locationById.get(reminder.locationId); return <div key={reminder.id} className={`flex flex-wrap items-center gap-3 rounded-xl border px-3 py-3 ${reminder.completedAt ? 'border-blue-50 bg-blue-50/40 opacity-65' : 'border-blue-100 bg-white'}`}><Clock3 size={16} className="text-brand-600" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-blue-950">{location?.name || reminder.locationId}</p><p className="mt-0.5 text-xs text-blue-500">{dateTime(reminder.scheduledAt)}{reminder.note ? ` · ${reminder.note}` : ''}</p></div>{!reminder.completedAt && <button type="button" onClick={() => completeReminder(reminder.id)} className="rounded-lg p-2 text-emerald-600 hover:bg-emerald-50" title="Đã hoàn thành"><CheckCircle2 size={16} /></button>}<button type="button" onClick={() => deleteReminder(reminder.id)} className="rounded-lg p-2 text-blue-300 hover:bg-blue-50 hover:text-blue-600"><Trash2 size={16} /></button></div>})}{!currentReminders.length && <p className="rounded-xl bg-blue-50/50 p-4 text-center text-xs text-blue-500">Chưa có lịch nhắc.</p>}</div>
+              <div className="mt-4 space-y-2">{currentReminders.sort((a, b) => String(a.scheduledAt).localeCompare(String(b.scheduledAt))).map((reminder) => { const location = locationById.get(reminder.locationId); return <div key={reminder.id} className={`flex flex-wrap items-center gap-3 rounded-xl border px-3 py-3 ${reminder.completedAt ? 'border-blue-50 bg-blue-50/40 opacity-65' : 'border-blue-100 bg-white'}`}><Clock3 size={16} className="text-brand-600" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-blue-950">{location?.name || reminder.locationId}</p><p className="mt-0.5 text-xs text-blue-500">{dateTime(reminder.scheduledAt)}{reminder.note ? ` · ${reminder.note}` : ''}</p></div>{!reminder.completedAt && <button type="button" onClick={() => completeReminder(reminder.id).catch(() => {})} className="rounded-lg p-2 text-emerald-600 hover:bg-emerald-50" title="Đã hoàn thành"><CheckCircle2 size={16} /></button>}<button type="button" onClick={() => deleteReminder(reminder.id).catch(() => {})} className="rounded-lg p-2 text-blue-300 hover:bg-blue-50 hover:text-blue-600"><Trash2 size={16} /></button></div>})}{!currentReminders.length && <p className="rounded-xl bg-blue-50/50 p-4 text-center text-xs text-blue-500">Chưa có lịch nhắc.</p>}</div>
             </section>
           </div>
         </div>
@@ -144,3 +144,4 @@ export default function ProfilePage() {
     </main>
   )
 }
+

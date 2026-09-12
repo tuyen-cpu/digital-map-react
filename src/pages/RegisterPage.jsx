@@ -10,17 +10,23 @@ export default function RegisterPage() {
   const { register } = useAppState()
   const navigate = useNavigate()
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     setError('')
     if (!isValidVietnamMobilePhone(form.phone)) return setError(VIETNAM_PHONE_HELP)
     if (form.password.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự.')
     if (form.password !== form.confirm) return setError('Mật khẩu xác nhận không khớp.')
     try {
-      register(form)
+      await register(form)
       navigate('/trang-chu')
     } catch (err) {
-      setError(err.message)
+      const data = err.response?.data
+      if (data && typeof data === 'object') {
+        const msgs = Object.values(data).flat().join(' ')
+        setError(msgs || err.message)
+      } else {
+        setError(err.message || 'Đăng ký thất bại.')
+      }
     }
   }
 

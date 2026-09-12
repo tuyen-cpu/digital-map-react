@@ -42,7 +42,7 @@ export default function LocationCard({ location, selected = false, onSelect, onO
         </div>
       </button>
       <div className="flex items-center gap-1 border-t border-blue-50 px-3 py-2">
-        <button type="button" onClick={() => toggleFavorite(location.id)} className={`rounded-lg p-2 transition ${favorite ? 'bg-blue-100 text-brand-700' : 'text-blue-300 hover:bg-blue-50 hover:text-brand-700'}`} aria-label={favorite ? 'Bỏ yêu thích' : 'Lưu yêu thích'}>
+        <button type="button" onClick={() => toggleFavorite(location.id).catch(() => {})} className={`rounded-lg p-2 transition ${favorite ? 'bg-blue-100 text-brand-700' : 'text-blue-300 hover:bg-blue-50 hover:text-brand-700'}`} aria-label={favorite ? 'Bỏ yêu thích' : 'Lưu yêu thích'}>
           <Heart size={16} fill={favorite ? 'currentColor' : 'none'} />
         </button>
         <button type="button" onClick={() => (onOpenDetails || onSelect)?.(location)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-brand-700 hover:bg-brand-50"><Info size={14} />Chi tiết</button>
@@ -51,3 +51,4 @@ export default function LocationCard({ location, selected = false, onSelect, onO
     </article>
   )
 }
+

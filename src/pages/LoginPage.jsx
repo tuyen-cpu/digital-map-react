@@ -10,16 +10,16 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     setError('')
     try {
-      const account = login(form)
+      const account = await login(form)
       if (account.mustChangePassword) navigate('/doi-mat-khau', { replace: true })
       else if (account.role === 'admin') navigate('/admin')
       else navigate(location.state?.from || '/trang-chu')
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message || 'Đăng nhập thất bại.')
     }
   }
 

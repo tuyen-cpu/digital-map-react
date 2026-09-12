@@ -714,7 +714,14 @@ export function AppStateProvider({ children }) {
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>
 }
 
-export function useAppState() {
+// ---------------------------------------------------------------------------
+// useAppState — re-exported từ ApiStateContext để tất cả components import
+// từ file này mà không cần sửa. AppStateProvider giữ lại để rollback.
+// ---------------------------------------------------------------------------
+export { useAppState } from './ApiStateContext'
+
+/** @deprecated Dùng ApiStateProvider trong main.jsx thay thế */
+export function _useAppStateLegacy() {
   const context = useContext(AppStateContext)
   if (!context) throw new Error('useAppState must be used inside AppStateProvider')
   return context
