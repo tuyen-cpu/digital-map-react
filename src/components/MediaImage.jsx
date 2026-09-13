@@ -30,7 +30,7 @@ export default function MediaImage({ src, fallback, alt = '', onLoadError, ...pr
   }, [fallback, src])
 
   // Không có ảnh đúng địa điểm thì để trống, không tự gán ảnh minh họa của nơi khác.
-  if (!resolved && !fallback) return null
+  if (!resolved && !fallback) return <img {...props} src="" alt={alt} style={{ display: 'none' }} />
 
   return (
     <img

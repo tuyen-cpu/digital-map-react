@@ -8,6 +8,11 @@ export async function apiGetReviews(locationId) {
   return res.data.results
 }
 
+export async function apiGetAllReviews() {
+  const res = await api.get('/reviews/')
+  return res.data.results
+}
+
 export async function apiSubmitReview(locationId, { rating, comment }) {
   const res = await api.post(`/locations/${locationId}/reviews/`, { rating, comment })
   return res.data

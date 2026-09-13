@@ -36,6 +36,10 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
+    // Bỏ qua 401 từ logout — đây là intentional, không cần redirect
+    if (error.response?.status === 401 && original.url?.includes('/auth/logout/')) {
+      return Promise.reject(error)
+    }
     if (error.response?.status === 401 && !original._retry) {
       if (_refreshing) {
         return new Promise((resolve, reject) => {
@@ -53,7 +57,7 @@ api.interceptors.response.use(
       const refresh = localStorage.getItem(REFRESH_KEY)
       if (!refresh) {
         _refreshing = false
-        _clearTokens()
+        _handleUnauthorized()
         return Promise.reject(error)
       }
       try {
@@ -65,7 +69,7 @@ api.interceptors.response.use(
         return api(original)
       } catch (err) {
         _processQueue(err, null)
-        _clearTokens()
+        _handleUnauthorized()
         return Promise.reject(err)
       } finally {
         _refreshing = false
@@ -78,6 +82,29 @@ api.interceptors.response.use(
 function _clearTokens() {
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(REFRESH_KEY)
+}
+
+// ---------------------------------------------------------------------------
+// Unauthorized redirect callback
+// Context (ApiStateContext) gọi setUnauthorizedHandler để đăng ký handler.
+// Khi refresh thất bại / không có refresh token → gọi handler → redirect login.
+// ---------------------------------------------------------------------------
+let _unauthorizedHandler = null
+
+export function setUnauthorizedHandler(fn) {
+  _unauthorizedHandler = fn
+}
+
+function _handleUnauthorized() {
+  _clearTokens()
+  if (_unauthorizedHandler) {
+    _unauthorizedHandler()
+  } else {
+    // Fallback nếu chưa có handler (e.g. trước khi React mount)
+    const path = window.location.pathname
+    const isProtected = ['/admin', '/quan-ly', '/tai-khoan'].some((p) => path.startsWith(p))
+    if (isProtected) window.location.href = '/dang-nhap'
+  }
 }
 
 // ---------------------------------------------------------------------------

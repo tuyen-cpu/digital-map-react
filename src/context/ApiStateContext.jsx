@@ -3,11 +3,11 @@
  * thay vì localStorage. Tất cả components giữ nguyên, chỉ swap Provider trong main.jsx.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { DEFAULT_SITE_SETTINGS } from '../data/siteSettings'
-import { clearTokens, getAccessToken, saveTokens } from '../services/api'
+import { useNavigate } from 'react-router-dom'
+import { clearTokens, getAccessToken, saveTokens, setUnauthorizedHandler } from '../services/api'
 import { apiChangePassword, apiLogin, apiLogout, apiMe, apiRegister, apiUpdateProfile } from '../services/authService'
 import { apiGetLocations, apiCreateLocation, apiUpdateLocation, apiDeleteLocation, apiImportLocations, apiResetLocations } from '../services/locationService'
-import { apiGetReviews, apiSubmitReview, apiDeleteReview, apiReplyToReview, apiDeleteReviewReply } from '../services/reviewService'
+import { apiGetReviews, apiGetAllReviews, apiSubmitReview, apiDeleteReview, apiReplyToReview, apiDeleteReviewReply } from '../services/reviewService'
 import { apiGetFavorites, apiToggleFavorite } from '../services/favoriteService'
 import { apiRecordTravel, apiGetTravelHistory, apiDeleteTravelHistory, apiGetReminders, apiCreateReminder, apiDeleteReminder, apiCompleteReminder, apiMarkReminderNotified } from '../services/travelService'
 import { apiTrackEvent, apiGetAnalyticsEvents, apiClearAnalytics } from '../services/analyticsService'
@@ -44,6 +44,7 @@ function getSessionId() {
 // Provider
 // ---------------------------------------------------------------------------
 export function ApiStateProvider({ children }) {
+  const navigate = useNavigate()
   const [session, setSession] = useState(() => {
     // Restore session từ token đã lưu lúc trước
     try {
@@ -58,7 +59,7 @@ export function ApiStateProvider({ children }) {
   const [travelHistory, setTravelHistory] = useState([])
   const [reminders, setReminders] = useState([])
   const [analyticsEvents, setAnalyticsEvents] = useState([])
-  const [siteSettings, setSiteSettings] = useState(DEFAULT_SITE_SETTINGS)
+  const [siteSettings, setSiteSettings] = useState(null)
   const [users, setUsers] = useState([])
   const [reviewNotificationReads, setReviewNotificationReads] = useState(() => {
     try { return JSON.parse(localStorage.getItem('binh-dinh:review-notification-reads-v1') || '{}') } catch { return {} }
@@ -74,12 +75,28 @@ export function ApiStateProvider({ children }) {
     } catch {}
   }, [session])
 
+  // Đăng ký handler redirect khi token hết hạn và không thể refresh
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setSession(null)
+      const path = window.location.pathname
+      const isProtected = ['/admin', '/quan-ly', '/tai-khoan'].some((p) => path.startsWith(p))
+      navigate(isProtected ? '/dang-nhap' : '/', { replace: true })
+    })
+  }, [navigate])
+
   // ---------------------------------------------------------------------------
   // Boot: verify token & load locations + site config
   // ---------------------------------------------------------------------------
+  const _booted = useRef(false)
   useEffect(() => {
+    if (_booted.current) return  // StrictMode double-invoke guard
+    _booted.current = true
+
     // Load site config (public)
-    apiGetSiteConfig().then(setSiteSettings).catch(() => {})
+    apiGetSiteConfig()
+      .then(setSiteSettings)
+      .catch(() => {})
 
     // Load all locations once (public)
     apiGetLocations().then((data) => {
@@ -118,6 +135,12 @@ export function ApiStateProvider({ children }) {
     if (session?.role !== 'admin') { setUsers([]); return }
     apiGetUsers().then(setUsers).catch(() => {})
     apiGetAnalyticsEvents().then(setAnalyticsEvents).catch(() => {})
+  }, [session?.role])
+
+  // Load reviews cho admin/manager
+  useEffect(() => {
+    if (!['admin', 'manager'].includes(session?.role)) { setReviews([]); return }
+    apiGetAllReviews().then(setReviews).catch(() => {})
   }, [session?.role])
 
   // ---------------------------------------------------------------------------
@@ -189,6 +212,7 @@ export function ApiStateProvider({ children }) {
     setReminders([])
     setUsers([])
     setAnalyticsEvents([])
+    navigate('/', { replace: true })
   }
 
   const updateProfile = async ({ displayName, phone, avatar }) => {
@@ -371,6 +395,7 @@ export function ApiStateProvider({ children }) {
   const updateSiteSettings = async (patch) => {
     const updated = await apiUpdateSiteConfig(patch)
     setSiteSettings(updated)
+    return updated
   }
 
   const resetSiteSettings = async () => {
@@ -396,12 +421,14 @@ export function ApiStateProvider({ children }) {
       .map((r) => {
         const location = locations.find((l) => l.id === r.locationId)
         return {
+          id: r.id,          // alias cho unreadIds.has(notification.id) trong Header
           reviewId: r.id,
           locationId: r.locationId,
           locationName: location?.name || r.locationId,
           username: r.username,
           displayName: r.displayName,
           rating: r.rating,
+          comment: r.comment,
           createdAt: r.createdAt,
         }
       })
@@ -411,9 +438,13 @@ export function ApiStateProvider({ children }) {
     return reviewNotifications.filter((n) => !reviewNotificationReads[n.reviewId])
   }, [reviewNotifications, reviewNotificationReads])
 
-  const markReviewNotificationsRead = useCallback(() => {
+  // ids: array reviewId cần đánh dấu đã đọc — nếu không truyền thì mark tất cả
+  const markReviewNotificationsRead = useCallback((ids) => {
     const next = { ...reviewNotificationReads }
-    reviewNotifications.forEach((n) => { next[n.reviewId] = true })
+    const targets = Array.isArray(ids) && ids.length > 0
+      ? reviewNotifications.filter((n) => ids.includes(n.reviewId))
+      : reviewNotifications
+    targets.forEach((n) => { next[n.reviewId] = true })
     setReviewNotificationReads(next)
     try { localStorage.setItem('binh-dinh:review-notification-reads-v1', JSON.stringify(next)) } catch {}
   }, [reviewNotifications, reviewNotificationReads])
@@ -445,7 +476,8 @@ export function ApiStateProvider({ children }) {
     reminders: reminders ?? [],
     currentReminders: currentReminders ?? [],
     analyticsEvents: analyticsEvents ?? [],
-    siteSettings: siteSettings ?? DEFAULT_SITE_SETTINGS,
+    siteSettings: siteSettings ?? { heroSlides: [], heroIntervalMs: 5200 },
+    siteSettingsLoaded: siteSettings !== null,
     users: users ?? [],
     reviewNotifications: reviewNotifications ?? [],
     unreadReviewNotifications: unreadReviewNotifications ?? [],

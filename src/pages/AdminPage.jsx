@@ -7,6 +7,7 @@ import AdminReportsPanel from '../components/AdminReportsPanel'
 import AdminReviewItem from '../components/AdminReviewItem'
 import AdminUserModal from '../components/AdminUserModal'
 import MediaImage from '../components/MediaImage'
+import { useDebounce } from '../hooks/useDebounce'
 import { useAppState } from '../context/AppStateContext'
 import { saveMediaFile } from '../services/mediaDb'
 import { CATEGORIES, getCategory } from '../utils/categories'
@@ -28,7 +29,7 @@ export default function AdminPage({ mode = 'admin' }) {
   const {
     session, login, logout, users, deleteUser, updateUserAccount, resetUserPassword,
     locations, addLocation, updateLocation, deleteLocation, resetLocations, canManageLocation, canManageCategory,
-    reviews, replyToReview, deleteReview, analyticsEvents, clearAnalytics, siteSettings, updateSiteSettings, resetSiteSettings,
+    reviews, replyToReview, deleteReview, analyticsEvents, clearAnalytics, siteSettings, siteSettingsLoaded, updateSiteSettings, resetSiteSettings,
     unreadReviewNotifications, markReviewNotificationsRead
   } = useAppState()
   const managerPortal = mode === 'manager'
@@ -170,11 +171,47 @@ export default function AdminPage({ mode = 'admin' }) {
     setNotice(`Đã xuất Excel ${filtered.length} địa điểm theo bộ lọc hiện tại.`)
   }
 
-  const setSlides = async (heroSlides) => { try { await updateSiteSettings({ heroSlides }) } catch(e) { setNotice(e?.response?.data?.detail || e.message || "Lỗi cập nhật slide.") } }
-  const slides = siteSettings?.heroSlides || []
-  const updateSlide = (index, patch) => setSlides(slides.map((slide, i) => i === index ? { ...slide, ...patch } : slide))
-  const removeSlide = (index) => setSlides(slides.filter((_, i) => i !== index))
-  const addSlide = () => setSlides([...slides, { id: `slide-${Date.now().toString(36)}`, image: '', title: 'Ảnh mới', caption: '' }])
+  // Local slide state — chỉnh sửa cục bộ, lưu khi bấm nút
+  const [localSlides, setLocalSlides] = useState(null)
+  const [slidesDirty, setSlidesDirty] = useState(false)
+  const [slidesSaving, setSlidesSaving] = useState(false)
+  const MAX_SLIDES = 5
+
+  // Khởi tạo localSlides khi siteSettings load xong lần đầu
+  useEffect(() => {
+    if (siteSettingsLoaded && localSlides === null) {
+      setLocalSlides(siteSettings.heroSlides)
+    }
+  }, [siteSettingsLoaded])
+
+  const slides = localSlides ?? siteSettings?.heroSlides ?? []
+
+  const updateSlide = (index, patch) => {
+    setLocalSlides(slides.map((slide, i) => i === index ? { ...slide, ...patch } : slide))
+    setSlidesDirty(true)
+  }
+  const removeSlide = (index) => {
+    setLocalSlides(slides.filter((_, i) => i !== index))
+    setSlidesDirty(true)
+  }
+  const addSlide = () => {
+    if (slides.length >= MAX_SLIDES) return
+    setLocalSlides([...slides, { id: `slide-${Date.now().toString(36)}`, image: '', title: 'Ảnh mới', caption: '' }])
+    setSlidesDirty(true)
+  }
+  const saveSlides = async () => {
+    setSlidesSaving(true)
+    try {
+      const result = await updateSiteSettings({ heroSlides: slides })
+      if (result?.heroSlides) setLocalSlides(result.heroSlides)
+      setSlidesDirty(false)
+      setNotice('Đã lưu slides.')
+    } catch (e) {
+      setNotice(e?.response?.data?.detail || e.message || 'Lỗi cập nhật slide.')
+    } finally {
+      setSlidesSaving(false)
+    }
+  }
   const uploadSlide = async (index, file) => {
     if (!file) return
     setSlideBusy(index)
@@ -237,7 +274,24 @@ export default function AdminPage({ mode = 'admin' }) {
         </section>}
 
         {isAdmin && tab === 'slides' && <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-4 shadow-card sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Trang chủ</p><h2 className="mt-1 text-2xl font-black text-blue-950">Slide ảnh chính</h2><p className="mt-1 text-sm text-blue-600/70">Có thể chọn ảnh trực tiếp từ máy hoặc dùng URL.</p></div><div className="flex gap-2"><button type="button" onClick={addSlide} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700"><Plus size={17} />Thêm slide</button><button type="button" onClick={() => { resetSiteSettings().then(() => setNotice('Đã khôi phục slide mặc định.')).catch(e => setNotice(e?.response?.data?.detail || e.message || 'Lỗi.')) }} className="rounded-xl border border-blue-100 px-3 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50"><RotateCcw size={16} /></button></div></div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Trang chủ</p>
+              <h2 className="mt-1 text-2xl font-black text-blue-950">Slide ảnh chính</h2>
+              <p className="mt-1 text-sm text-blue-600/70">Tối đa {MAX_SLIDES} slides. Chỉnh sửa xong bấm <strong>Lưu</strong> để cập nhật.</p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={addSlide} disabled={slides.length >= MAX_SLIDES} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40">
+                <Plus size={17} />Thêm slide {slides.length >= MAX_SLIDES ? `(đủ ${MAX_SLIDES})` : `(${slides.length}/${MAX_SLIDES})`}
+              </button>
+              {slidesDirty && (
+                <button type="button" onClick={saveSlides} disabled={slidesSaving} className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-black text-white hover:bg-green-700 disabled:opacity-60">
+                  {slidesSaving ? 'Đang lưu...' : 'Lưu'}
+                </button>
+              )}
+              <button type="button" onClick={() => { resetSiteSettings().then(() => { setLocalSlides(null); setSlidesDirty(false); setNotice('Đã khôi phục slide mặc định.') }).catch(e => setNotice(e?.response?.data?.detail || e.message || 'Lỗi.')) }} className="rounded-xl border border-blue-100 px-3 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50" title="Khôi phục mặc định"><RotateCcw size={16} /></button>
+            </div>
+          </div>
           <div className="mt-5 grid gap-4 lg:grid-cols-2">{slides.map((slide, index) => <div key={slide.id || index} className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/35"><div className="relative aspect-[16/7] bg-blue-100">{slide.image ? <MediaImage src={slide.image} alt={slide.title || ''} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-blue-300"><Image size={30} /></div>}<button type="button" onClick={() => removeSlide(index)} className="absolute right-2 top-2 rounded-lg bg-white/90 p-2 text-blue-700 shadow hover:bg-white" title="Xóa slide"><Trash2 size={16} /></button></div><div className="space-y-3 p-4"><label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-black text-brand-700 hover:bg-blue-50"><Upload size={15} />{slideBusy === index ? 'Đang lưu...' : 'Chọn ảnh từ máy'}<input type="file" accept="image/*" className="hidden" disabled={slideBusy >= 0} onChange={(e) => uploadSlide(index, e.target.files?.[0])} /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">URL / tham chiếu ảnh</span><input value={slide.image || ''} onChange={(e) => updateSlide(index, { image: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-xs outline-none focus:border-brand-300" /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Tiêu đề</span><input value={slide.title || ''} onChange={(e) => updateSlide(index, { title: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-sm outline-none focus:border-brand-300" /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Mô tả</span><input value={slide.caption || ''} onChange={(e) => updateSlide(index, { caption: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-sm outline-none focus:border-brand-300" /></label></div></div>)}</div>
         </section>}
 

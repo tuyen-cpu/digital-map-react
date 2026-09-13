@@ -4,7 +4,7 @@
 import api from './api'
 
 export async function apiGetSiteConfig() {
-  const res = await api.get('/site-config/')
+  const res = await api.get('/site-config/', { params: { _t: Date.now() } })
   return res.data  // { heroSlides, heroIntervalMs }
 }
 

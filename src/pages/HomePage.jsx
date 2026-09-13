@@ -31,6 +31,9 @@ export default function HomePage() {
     <div className="bg-blue-50/30">
       <section className="relative isolate min-h-[650px] overflow-hidden bg-blue-900 text-white sm:min-h-[690px]">
         <div className="absolute inset-0 overflow-hidden">
+          {slides.length === 0 && (
+            <div className="absolute inset-0 bg-blue-900" />
+          )}
           {slides.map((slide, index) => (
             <MediaImage
               key={slide.id || slide.image}

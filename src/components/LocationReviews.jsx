@@ -2,6 +2,7 @@ import { MessageCircleReply, MessageSquare, Send, Star, Trash2, UserRound } from
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
+import MediaImage from './MediaImage'
 import { isValidVietnamMobilePhone } from '../utils/phone'
 import { apiGetReviews } from '../services/reviewService'
 

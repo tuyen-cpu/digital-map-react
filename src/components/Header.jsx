@@ -24,6 +24,19 @@ function NotificationCount({ count }) {
   return <span className="ml-1 grid min-w-5 place-items-center rounded-full bg-sky-500 px-1.5 py-0.5 text-[10px] font-black leading-4 text-white">{count > 99 ? '99+' : count}</span>
 }
 
+function BellWithBadge({ count, size = 16 }) {
+  return (
+    <span className="relative inline-flex shrink-0">
+      <Bell size={size} />
+      {count > 0 && (
+        <span className="absolute -right-1.5 -top-1.5 grid min-w-[17px] place-items-center rounded-full bg-sky-500 px-1 text-[9px] font-black leading-[17px] text-white shadow">
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </span>
+  )
+}
+
 function notificationHref(notification) {
   const reviewHash = `review-${notification.reviewId}`
   return `/place.html?id=${encodeURIComponent(notification.locationId)}&review=${encodeURIComponent(notification.reviewId)}#${reviewHash}`
@@ -137,7 +150,7 @@ export default function Header() {
                   {canManage && (
                     <div className="rounded-2xl border border-blue-100 bg-blue-50/35 p-2.5">
                       <div className="flex items-center justify-between gap-2 px-1 pb-2">
-                        <span className="inline-flex items-center gap-2 text-sm font-black text-blue-950"><Bell size={17} /> Đánh giá mới <NotificationCount count={unreadReviewCount} /></span>
+                        <span className="inline-flex items-center gap-2 text-sm font-black text-blue-950"><BellWithBadge size={17} count={unreadReviewCount} /> Đánh giá mới</span>
                         <Link to={reviewPath} onClick={() => setOpen(false)} className="text-[11px] font-black text-brand-700">Xem tất cả</Link>
                       </div>
                       <div className="grid gap-2">
@@ -179,13 +192,16 @@ export default function Header() {
                 {canManage && (
                   <div className="relative">
                     <button type="button" onClick={() => setNotificationsOpen((value) => !value)} className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-brand-50 hover:text-brand-800" aria-expanded={notificationsOpen} aria-label="Mở thông báo đánh giá">
-                      <Bell size={16} />Thông báo<NotificationCount count={unreadReviewCount} />
+                      <BellWithBadge size={16} count={unreadReviewCount} />Thông báo
                     </button>
                     {notificationsOpen && (
                       <div className="absolute right-0 top-[calc(100%+10px)] z-[1200] w-[390px] overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xl">
                         <div className="flex items-center justify-between border-b border-blue-50 px-4 py-3">
                           <div><p className="text-sm font-black text-blue-950">Đánh giá cần xử lý</p><p className="mt-0.5 text-[10px] text-blue-500">Bấm một đánh giá để mở đúng địa điểm và phản hồi.</p></div>
-                          <button type="button" onClick={() => setNotificationsOpen(false)} className="rounded-lg p-1.5 text-blue-400 hover:bg-blue-50"><X size={16} /></button>
+                          <div className="flex items-center gap-1">
+                            {unreadReviewCount > 0 && <button type="button" onClick={() => markReviewNotificationsRead()} className="rounded-lg px-2 py-1.5 text-[11px] font-black text-brand-700 hover:bg-blue-50">Đọc tất cả</button>}
+                            <button type="button" onClick={() => setNotificationsOpen(false)} className="rounded-lg p-1.5 text-blue-400 hover:bg-blue-50"><X size={16} /></button>
+                          </div>
                         </div>
                         <div className="max-h-[430px] space-y-2 overflow-y-auto p-3">
                           {reviewNotifications.slice(0, 8).map((notification) => <NotificationItem key={notification.id} notification={notification} unread={unreadIds.has(notification.id)} onOpen={openNotification} />)}
