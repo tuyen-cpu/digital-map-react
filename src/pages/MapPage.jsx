@@ -166,7 +166,7 @@ export default function MapPage() {
 
   return (
     <main className={`relative grid h-[calc(100dvh-5rem)] min-h-[560px] grid-cols-1 overflow-hidden bg-blue-50 md:min-h-[620px] md:grid-cols-[390px_1fr] md:grid-rows-1 xl:grid-cols-[430px_1fr] ${routeActive ? 'grid-rows-1' : 'grid-rows-[43%_57%]'}`}>
-      <div className={routeActive ? 'hidden min-h-0 md:block' : 'min-h-0'}>
+      <div className={routeActive ? 'hidden min-h-0 md:flex md:h-full' : 'flex min-h-0 h-full'}>
       <Sidebar
         search={search}
         onSearchChange={(value) => { setSearch(value); setRegionOnly(false) }}

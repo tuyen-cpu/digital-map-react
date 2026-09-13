@@ -1,7 +1,7 @@
 import { ImagePlus, LocateFixed, MapPinned, Plus, Save, Trash2, Upload, Video, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
-import { saveMediaFile } from '../services/mediaDb'
+import { uploadMedia } from '../services/mediaService'
 import { getCurrentPosition } from '../services/routing'
 import { CATEGORIES } from '../utils/categories'
 import MediaImage from './MediaImage'
@@ -205,20 +205,19 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
     setBusy(kind)
     try {
       if (kind === 'image') {
-        const ref = await saveMediaFile(list[0], { kind: 'image', maxBytes: 8 * 1024 * 1024 })
-        patch('image', ref)
+        const url = await uploadMedia(list[0], { folder: 'locations' })
+        patch('image', url)
       } else {
         const key = kind === 'gallery' ? 'gallery' : kind === 'panorama' ? 'panoramas' : 'videos'
-        const maxBytes = kind === 'video' ? 40 * 1024 * 1024 : 12 * 1024 * 1024
-        const refs = []
+        const urls = []
         for (const file of list) {
-          const ref = await saveMediaFile(file, { kind, maxBytes })
-          refs.push({ url: ref, name: file.name, alt: kind === 'video' ? '' : `${form.name || 'Địa điểm'} - ${file.name}` })
+          const url = await uploadMedia(file, { folder: kind === 'video' ? 'videos' : kind === 'panorama' ? 'panoramas' : 'gallery' })
+          urls.push({ url, name: file.name, alt: kind === 'video' ? '' : `${form.name || 'Địa điểm'} - ${file.name}` })
         }
-        patch(key, [...(form[key] || []), ...refs])
+        patch(key, [...(form[key] || []), ...urls])
       }
     } catch (e) {
-      setError(e.message || 'Không lưu được file từ máy.')
+      setError(e.message || 'Không tải được file lên server.')
     } finally {
       setBusy('')
     }

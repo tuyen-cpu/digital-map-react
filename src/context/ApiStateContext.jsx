@@ -233,14 +233,22 @@ export function ApiStateProvider({ children }) {
   // ---------------------------------------------------------------------------
   const addLocation = async (input) => {
     const location = await apiCreateLocation(input)
-    setLocations((prev) => [location, ...prev])
+    // Reload từ API để đảm bảo sort và data đồng bộ với backend
+    apiGetLocations().then((fresh) => {
+      if (Array.isArray(fresh)) setLocations(fresh)
+      else setLocations((prev) => [location, ...prev])
+    }).catch(() => setLocations((prev) => [location, ...prev]))
     trackEvent('admin_location_create', { locationId: location.id, locationName: location.name })
     return location
   }
 
   const updateLocation = async (id, input) => {
     const updated = await apiUpdateLocation(id, input)
-    setLocations((prev) => prev.map((l) => l.id === id ? updated : l))
+    // Reload để sync
+    apiGetLocations().then((fresh) => {
+      if (Array.isArray(fresh)) setLocations(fresh)
+      else setLocations((prev) => prev.map((l) => l.id === id ? updated : l))
+    }).catch(() => setLocations((prev) => prev.map((l) => l.id === id ? updated : l)))
     trackEvent('admin_location_update', { locationId: id, locationName: updated.name })
     return updated
   }

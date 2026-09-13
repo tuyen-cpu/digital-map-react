@@ -7,7 +7,7 @@ export default function Sidebar({
   onReset, onShowAll, onLocate, onShowInBounds, onOpenDetails, totalCount, mappableCount, compactMobile = false
 }) {
   return (
-    <aside className={`flex min-h-0 flex-col bg-slate-50 ${compactMobile ? '' : 'border-r border-slate-200'}`}>
+    <aside className={`flex min-h-0 h-full w-full flex-col bg-slate-50 ${compactMobile ? '' : 'border-r border-slate-200'}`}>
       <div className="border-b border-slate-200 bg-white p-4">
         <div className="flex items-center justify-between gap-3">
           <div>

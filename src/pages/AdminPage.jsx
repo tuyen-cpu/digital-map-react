@@ -9,7 +9,7 @@ import AdminUserModal from '../components/AdminUserModal'
 import MediaImage from '../components/MediaImage'
 import { useDebounce } from '../hooks/useDebounce'
 import { useAppState } from '../context/AppStateContext'
-import { saveMediaFile } from '../services/mediaDb'
+import { uploadMedia } from '../services/mediaService'
 import { CATEGORIES, getCategory } from '../utils/categories'
 import { downloadExcelWorkbook } from '../utils/excelExport'
 import { hasCoordinates } from '../utils/format'
@@ -216,9 +216,9 @@ export default function AdminPage({ mode = 'admin' }) {
     if (!file) return
     setSlideBusy(index)
     try {
-      const ref = await saveMediaFile(file, { kind: 'hero', maxBytes: 10 * 1024 * 1024 })
-      updateSlide(index, { image: ref })
-      setNotice('Đã cập nhật ảnh slide từ máy.')
+      const url = await uploadMedia(file, { folder: 'slides' })
+      updateSlide(index, { image: url })
+      setNotice('Đã cập nhật ảnh slide.')
     } catch (e) {
       setNotice(e.message || 'Không tải được ảnh slide.')
     } finally {
