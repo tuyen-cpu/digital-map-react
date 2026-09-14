@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { BarChart3, CalendarClock, Download, FileSpreadsheet, Filter, MapPin, Navigation, Star, Users } from 'lucide-react'
 import { useAppState } from '../context/AppStateContext'
-import { CATEGORIES, getCategory } from '../utils/categories'
+import { useCategories } from '../hooks/useCategories'
 import { downloadExcelWorkbook } from '../utils/excelExport'
 import { formatVietnamPhone } from '../utils/phone'
 import { hasCoordinates } from '../utils/format'
@@ -16,10 +16,6 @@ function dateTime(value) {
   try { return new Date(value).toLocaleString('vi-VN') } catch { return value }
 }
 
-function categoryLabel(key) {
-  return getCategory(key)?.label || key || ''
-}
-
 function safeDate(value, fallback) {
   const date = value ? new Date(value) : fallback
   return Number.isNaN(date.getTime()) ? fallback : date
@@ -27,6 +23,8 @@ function safeDate(value, fallback) {
 
 export default function AdminReportsPanel({ allowedLocationIds = null, allowUserData = true }) {
   const { analyticsEvents, locations, reviews, users } = useAppState()
+  const { categories, getCategory: getLiveCat } = useCategories()
+  const categoryLabel = (key) => getLiveCat(key)?.label || key || ''
   const now = new Date()
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   const [from, setFrom] = useState(localInputValue(monthAgo))
@@ -114,7 +112,7 @@ export default function AdminReportsPanel({ allowedLocationIds = null, allowUser
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Từ ngày giờ</span><input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50" /></label>
         <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Đến ngày giờ</span><input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50" /></label>
-        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Danh mục</span><select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Tất cả danh mục</option>{CATEGORIES.filter((item) => availableCategories.has(item.key)).map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
+        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Danh mục</span><select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Tất cả danh mục</option>{categories.filter((item) => availableCategories.has(item.key)).map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
         <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Nội dung xuất</span><select value={reportType} onChange={(e) => setReportType(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Báo cáo đầy đủ</option><option value="traffic">Truy cập & lượt xem</option><option value="routes">Dẫn đường</option><option value="reviews">Đánh giá</option>{allowUserData && <option value="users">Tài khoản đăng ký</option>}<option value="catalog">Danh mục địa điểm</option></select></label>
       </div>
 

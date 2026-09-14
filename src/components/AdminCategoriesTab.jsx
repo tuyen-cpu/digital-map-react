@@ -1,15 +1,13 @@
 /**
  * AdminCategoriesTab — Quản lý danh mục địa điểm (CRUD từ DB)
  */
-import { ChevronDown, ChevronUp, Layers, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Layers, Plus, Save, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { useAppState } from '../context/AppStateContext'
 
 const inputClass = 'mt-1.5 w-full rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm text-blue-950 outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50'
 
 const EMPTY_FORM = { key: '', label: '', shortLabel: '', emoji: '📍', description: '', marker: '#1d4ed8', order: 99, suggestedGroups: '', suggestedSubgroups: '', suggestedKeywords: '' }
-
-import { apiSeedCategories } from '../services/categoryService'
 
 export default function AdminCategoriesTab({ locations = [], setNotice }) {
   const { categories, addCategory, updateCategory, deleteCategory, refreshCategories } = useAppState()
@@ -63,34 +61,34 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
         suggestedKeywords: d.suggestedKeywords ? d.suggestedKeywords.split(',').map(s => s.trim()).filter(Boolean) : [],
       }
       await updateCategory(key, payload)
-      setNotice?.(`Đã lưu danh mục "${d?.label || key}".`)
+      setNotice?.(`Đã lưu danh mục "${d?.label || key}".`, 'success')
       setExpanded(null)
     } catch (e) {
-      setNotice?.(e?.response?.data?.detail || e.message || 'Lỗi khi lưu danh mục.')
+      setNotice?.(e?.response?.data?.detail || e.message || 'Lỗi khi lưu danh mục.', 'error')
     } finally { setBusy(false) }
   }
 
   const handleDelete = async (key) => {
     const count = countByCategory[key] || 0
     if (count > 0) {
-      setNotice?.(`Không thể xóa — có ${count} địa điểm đang dùng danh mục này.`)
+      setNotice?.(`Không thể xóa — có ${count} địa điểm đang dùng danh mục này.`, 'error')
       return
     }
     if (!window.confirm(`Xóa danh mục "${key}"?`)) return
     setBusy(true)
     try {
       await deleteCategory(key)
-      setNotice?.(`Đã xóa danh mục "${key}".`)
+      setNotice?.(`Đã xóa danh mục "${key}".`, 'success')
       if (expanded === key) setExpanded(null)
     } catch (e) {
-      setNotice?.(e?.response?.data?.detail || e.message || 'Lỗi khi xóa.')
+      setNotice?.(e?.response?.data?.detail || e.message || 'Lỗi khi xóa.', 'error')
     } finally { setBusy(false) }
   }
 
   const handleAdd = async (e) => {
     e.preventDefault()
     if (!newForm.key.trim() || !newForm.label.trim()) {
-      setNotice?.('Hãy nhập key và tên danh mục.')
+      setNotice?.('Hãy nhập key và tên danh mục.', 'error')
       return
     }
     setBusy(true)
@@ -101,23 +99,11 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
         suggestedSubgroups: newForm.suggestedSubgroups ? newForm.suggestedSubgroups.split('\n').map(s => s.trim()).filter(Boolean) : [],
         suggestedKeywords: newForm.suggestedKeywords ? newForm.suggestedKeywords.split(',').map(s => s.trim()).filter(Boolean) : [],
       })
-      setNotice?.(`Đã thêm danh mục "${newForm.label}".`)
+      setNotice?.(`Đã thêm danh mục "${newForm.label}".`, 'success')
       setNewForm({ ...EMPTY_FORM })
       setAdding(false)
     } catch (e) {
-      setNotice?.(e?.response?.data?.detail || e.message || 'Lỗi khi thêm danh mục.')
-    } finally { setBusy(false) }
-  }
-
-  const handleSeedDefaults = async () => {
-    if (!window.confirm('Seed lại 7 danh mục mặc định? Các danh mục đã có sẽ không bị ghi đè.')) return
-    setBusy(true)
-    try {
-      const result = await apiSeedCategories()
-      await refreshCategories()
-      setNotice?.(`Đã seed ${result.created} danh mục mới. Tổng: ${result.total}.`)
-    } catch (e) {
-      setNotice?.(e?.response?.data?.detail || e.message || 'Lỗi khi seed.')
+      setNotice?.(e?.response?.data?.detail || e.message || 'Lỗi khi thêm danh mục.', 'error')
     } finally { setBusy(false) }
   }
 
@@ -131,10 +117,6 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
           <p className="mt-1 text-sm text-blue-600/70">Thêm, sửa, xóa danh mục. Thay đổi phản ánh ngay trên toàn bộ website.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={handleSeedDefaults} disabled={busy}
-            className="inline-flex items-center gap-2 rounded-xl border border-blue-100 px-3 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
-            <RotateCcw size={15} />Seed mặc định
-          </button>
           <button type="button" onClick={() => { setAdding(true); setExpanded(null) }} disabled={busy}
             className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700 disabled:opacity-50">
             <Plus size={16} />Thêm danh mục
@@ -154,7 +136,7 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
         ))}
         {categories.length === 0 && (
           <p className="col-span-full rounded-2xl border border-dashed border-blue-200 p-6 text-center text-sm text-blue-400">
-            Chưa có danh mục. Nhấn "Seed mặc định" để tạo 7 danh mục ban đầu.
+            Chưa có danh mục. Nhấn "Thêm danh mục" để tạo danh mục mới.
           </p>
         )}
       </div>
