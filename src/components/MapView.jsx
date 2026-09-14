@@ -2,15 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import { Circle, GeoJSON, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import { Crosshair, Info, LocateFixed, Maximize2, RotateCcw } from 'lucide-react'
-import { getCategory } from '../utils/categories'
+import { useCategories } from '../hooks/useCategories'
 import { hasCoordinates } from '../utils/format'
 import { loadBoundary } from '../services/boundary'
 
 const DEFAULT_CENTER = [13.8932, 109.058]
 const DEFAULT_ZOOM = 13
 
-function makeLocationIcon(location, selected) {
-  const category = getCategory(location.category)
+function makeLocationIcon(location, selected, getCategoryFn) {
+  const category = getCategoryFn(location.category)
   return L.divIcon({
     className: 'location-marker-shell',
     html: `<div class="location-marker ${selected ? 'is-selected' : ''}" style="--marker:${category.marker}"><span>${category.emoji}</span></div>`,
@@ -93,6 +93,7 @@ function MapButtons({ onLocate }) {
 }
 
 export default function MapView({ locations, selectedLocation, onSelectLocation, onLocate, userPosition, route, routeOrigin, routeDestination, followUser, onBoundsChange }) {
+  const { getCategory: getLiveCat } = useCategories()
   const [boundaryState, setBoundaryState] = useState({ data: null, isFallback: false, loading: true, error: null })
   useEffect(() => {
     const controller = new AbortController()
@@ -107,7 +108,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
     if (routeActive) return hasCoordinates(routeDestination) ? [routeDestination] : []
     return locations.filter(hasCoordinates)
   }, [locations, routeActive, routeDestination])
-  const selectedIcon = useMemo(() => selectedLocation && hasCoordinates(selectedLocation) ? makeLocationIcon(selectedLocation, true) : null, [selectedLocation])
+  const selectedIcon = useMemo(() => selectedLocation && hasCoordinates(selectedLocation) ? makeLocationIcon(selectedLocation, true, getLiveCat) : null, [selectedLocation, getLiveCat])
   const effectiveOrigin = followUser && userPosition ? userPosition : routeOrigin
 
   return (
@@ -117,7 +118,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
         {boundaryState.data && <GeoJSON key={boundaryState.isFallback ? 'fallback-boundary' : 'full-boundary'} data={boundaryState.data} style={{ color: '#2563eb', weight: 3, fillColor: '#60a5fa', fillOpacity: 0.07, dashArray: boundaryState.isFallback ? '8 8' : undefined }} />}
         {markers.map((location) => {
           const selected = selectedLocation?.id === location.id || routeDestination?.id === location.id
-          const icon = selected && selectedIcon ? selectedIcon : makeLocationIcon(location, selected)
+          const icon = selected && selectedIcon ? selectedIcon : makeLocationIcon(location, selected, getLiveCat)
           return <Marker key={location.id} position={[location.lat, location.lng]} icon={icon} eventHandlers={{ click: () => onSelectLocation?.(location) }} />
         })}
         {routeActive && effectiveOrigin && <Marker position={[effectiveOrigin.lat, effectiveOrigin.lng]} icon={makeRouteOriginIcon()} />}

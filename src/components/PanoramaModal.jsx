@@ -14,6 +14,7 @@ function SphereViewer({ src, caption }) {
 
   useEffect(() => {
     let cancelled = false
+    let rafId = null
 
     async function mount() {
       setError('')
@@ -25,7 +26,17 @@ function SphereViewer({ src, caption }) {
           objectUrlRef.current = URL.createObjectURL(record.blob)
           panorama = objectUrlRef.current
         }
+        if (cancelled) return
+        // Đợi 1 frame để container chắc chắn đã render với kích thước thực
+        await new Promise((resolve) => { rafId = requestAnimationFrame(resolve) })
         if (cancelled || !hostRef.current) return
+        // Kiểm tra container có kích thước thực chưa
+        const { offsetWidth, offsetHeight } = hostRef.current
+        if (!offsetWidth || !offsetHeight) {
+          // Thử thêm 1 frame nữa
+          await new Promise((resolve) => { rafId = requestAnimationFrame(resolve) })
+          if (cancelled || !hostRef.current) return
+        }
         viewerRef.current?.destroy()
         viewerRef.current = new Viewer({
           container: hostRef.current,
@@ -50,6 +61,7 @@ function SphereViewer({ src, caption }) {
     mount()
     return () => {
       cancelled = true
+      if (rafId) cancelAnimationFrame(rafId)
       viewerRef.current?.destroy()
       viewerRef.current = null
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
@@ -59,7 +71,7 @@ function SphereViewer({ src, caption }) {
 
   return (
     <div className="relative h-full min-h-[340px] w-full overflow-hidden rounded-2xl border border-white/10 bg-blue-950/50 sm:min-h-[520px]">
-      <div ref={hostRef} className="h-full w-full" />
+      <div ref={hostRef} style={{ width: '100%', height: '100%', minHeight: 340 }} />
       {error && <div className="absolute inset-0 grid place-items-center p-6 text-center"><div className="max-w-lg rounded-2xl bg-blue-950/85 p-5 text-sm leading-6 text-white shadow-2xl">{error}<p className="mt-2 text-xs text-blue-200">Ảnh 360° chuẩn nên là ảnh equirectangular tỉ lệ 2:1. Quản trị viên có thể thay ảnh trong phần sửa địa điểm.</p></div></div>}
     </div>
   )
@@ -91,7 +103,7 @@ export default function PanoramaModal({ location, onClose }) {
         {currentUrl ? (
           <div className="mx-auto flex h-full max-w-7xl flex-col">
             <div className="mb-2 text-center text-xs text-blue-100/85">Giữ và kéo để xoay tròn 360° · cuộn/chụm hai ngón để zoom · có thể mở toàn màn hình.</div>
-            <div className="min-h-0 flex-1"><SphereViewer src={currentUrl} caption={currentAlt || location.name} /></div>
+            <div className="min-h-0 flex-1" style={{ minHeight: 340 }}><SphereViewer src={currentUrl} caption={currentAlt || location.name} /></div>
           </div>
         ) : (
           <div className="grid h-full place-items-center">

@@ -1,6 +1,6 @@
 import { KeyRound, Save, ShieldCheck, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { CATEGORIES } from '../utils/categories'
+import { useCategories } from '../hooks/useCategories'
 import { formatVietnamPhone, isValidVietnamMobilePhone } from '../utils/phone'
 
 function unique(values) {
@@ -8,12 +8,22 @@ function unique(values) {
 }
 
 export default function AdminUserModal({ open, user, locations, onClose, onSave, onResetPassword }) {
+  const { categories } = useCategories()
   const [form, setForm] = useState({ username: '', displayName: '', phone: '', role: 'user', categories: [], groups: [], subgroups: [] })
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
 
-  const groupOptions = useMemo(() => unique(locations.map((item) => item.group)).sort((a, b) => a.localeCompare(b, 'vi')), [locations])
-  const subgroupOptions = useMemo(() => unique(locations.map((item) => item.subgroup)).sort((a, b) => a.localeCompare(b, 'vi')), [locations])
+  const groupOptions = useMemo(() => {
+    const fromCategories = categories.flatMap((c) => c.suggestedGroups || [])
+    const fromLocations = locations.map((item) => item.group)
+    return unique([...fromCategories, ...fromLocations]).sort((a, b) => a.localeCompare(b, 'vi'))
+  }, [categories, locations])
+
+  const subgroupOptions = useMemo(() => {
+    const fromCategories = categories.flatMap((c) => c.suggestedSubgroups || [])
+    const fromLocations = locations.map((item) => item.subgroup)
+    return unique([...fromCategories, ...fromLocations]).sort((a, b) => a.localeCompare(b, 'vi'))
+  }, [categories, locations])
 
   useEffect(() => {
     if (!open || !user) return
@@ -34,12 +44,12 @@ export default function AdminUserModal({ open, user, locations, onClose, onSave,
 
   const toggle = (key, value) => setForm((current) => ({ ...current, [key]: current[key].includes(value) ? current[key].filter((item) => item !== value) : [...current[key], value] }))
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     setError('')
     if (!isValidVietnamMobilePhone(form.phone)) return setError('Số điện thoại không đúng định dạng di động Việt Nam.')
     try {
-      onSave?.(user.username, {
+      await onSave?.(user.username, {
         username: form.username,
         displayName: form.displayName,
         phone: form.phone,
@@ -48,17 +58,17 @@ export default function AdminUserModal({ open, user, locations, onClose, onSave,
       })
       onClose?.()
     } catch (e) {
-      setError(e.message || 'Không thể cập nhật tài khoản.')
+      setError(e?.response?.data?.detail || e.message || 'Không thể cập nhật tài khoản.')
     }
   }
 
-  const resetPassword = () => {
+  const resetPassword = async () => {
     if (!window.confirm(`Đặt lại mật khẩu cho @${user.username}? Người dùng sẽ bắt buộc đổi mật khẩu ở lần đăng nhập tiếp theo.`)) return
     try {
-      const password = onResetPassword?.(user.username)
+      const password = await onResetPassword?.(user.username)
       setNotice(`Đã đặt lại mật khẩu: ${password}`)
     } catch (e) {
-      setError(e.message || 'Không thể đặt lại mật khẩu.')
+      setError(e?.response?.data?.detail || e.message || 'Không thể đặt lại mật khẩu.')
     }
   }
 
@@ -84,7 +94,7 @@ export default function AdminUserModal({ open, user, locations, onClose, onSave,
           {form.role === 'manager' && <div className="mt-6 space-y-5 rounded-2xl border border-blue-100 bg-blue-50/45 p-4 sm:p-5">
             <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-brand-600" size={20} /><div><h3 className="font-black text-blue-950">Phạm vi được quản lý</h3><p className="mt-1 text-xs leading-5 text-blue-600">Chỉ những địa điểm khớp ít nhất một danh mục, phân nhóm hoặc phân nhóm chi tiết được chọn mới có thể sửa/xóa. Khi thêm mới, tài khoản chỉ được thêm vào danh mục đã cấp quyền.</p></div></div>
 
-            <PermissionBlock title="Danh mục" values={CATEGORIES.map((item) => ({ value: item.key, label: `${item.emoji} ${item.label}` }))} selected={form.categories} onToggle={(value) => toggle('categories', value)} />
+            <PermissionBlock title="Danh mục" values={categories.map((item) => ({ value: item.key, label: `${item.emoji} ${item.label}` }))} selected={form.categories} onToggle={(value) => toggle('categories', value)} />
             <PermissionBlock title="Phân nhóm" values={groupOptions.map((value) => ({ value, label: value }))} selected={form.groups} onToggle={(value) => toggle('groups', value)} />
             <PermissionBlock title="Phân nhóm chi tiết" values={subgroupOptions.map((value) => ({ value, label: value }))} selected={form.subgroups} onToggle={(value) => toggle('subgroups', value)} />
           </div>}
@@ -101,5 +111,41 @@ export default function AdminUserModal({ open, user, locations, onClose, onSave,
 }
 
 function PermissionBlock({ title, values, selected, onToggle }) {
-  return <div><p className="text-xs font-black uppercase tracking-wide text-blue-600">{title}</p><div className="mt-2 flex max-h-40 flex-wrap gap-2 overflow-y-auto pr-1">{values.map((item) => <button key={item.value} type="button" onClick={() => onToggle(item.value)} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${selected.includes(item.value) ? 'border-brand-500 bg-brand-600 text-white' : 'border-blue-100 bg-white text-blue-700 hover:bg-blue-50'}`}>{item.label}</button>)}</div></div>
+  const [search, setSearch] = useState('')
+  const filtered = search.trim()
+    ? values.filter((item) => item.label.toLowerCase().includes(search.toLowerCase()))
+    : values
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-black uppercase tracking-wide text-blue-600">{title}</p>
+        <span className="text-[11px] text-blue-400">{selected.length} đã chọn / {values.length} tổng</span>
+      </div>
+      {values.length > 8 && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={`Tìm ${title.toLowerCase()}...`}
+          className="mb-2 w-full rounded-lg border border-blue-100 bg-white px-3 py-2 text-xs outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50"
+        />
+      )}
+      <div className="flex max-h-52 flex-wrap gap-2 overflow-y-auto pr-1">
+        {filtered.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => onToggle(item.value)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+              selected.includes(item.value)
+                ? 'border-brand-500 bg-brand-600 text-white'
+                : 'border-blue-100 bg-white text-blue-700 hover:bg-blue-50'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+        {!filtered.length && <p className="text-xs text-blue-400">Không tìm thấy.</p>}
+      </div>
+    </div>
+  )
 }

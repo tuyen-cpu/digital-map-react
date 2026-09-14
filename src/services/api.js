@@ -36,8 +36,11 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
-    // Bỏ qua 401 từ logout — đây là intentional, không cần redirect
-    if (error.response?.status === 401 && original.url?.includes('/auth/logout/')) {
+    // Bỏ qua 401 từ login/logout — đây là intentional (sai mật khẩu hoặc clear token)
+    if (error.response?.status === 401 && (
+      original.url?.includes('/auth/logout/') ||
+      original.url?.includes('/auth/login/')
+    )) {
       return Promise.reject(error)
     }
     if (error.response?.status === 401 && !original._retry) {

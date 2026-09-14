@@ -1,11 +1,12 @@
 import { ChevronDown, LocateFixed, RefreshCcw, Search, SlidersHorizontal } from 'lucide-react'
-import { CATEGORIES } from '../utils/categories'
+import { useCategories } from '../hooks/useCategories'
 import LocationCard from './LocationCard'
 
 export default function Sidebar({
   search, onSearchChange, category, onCategoryChange, locations, selectedLocation, onSelectLocation,
   onReset, onShowAll, onLocate, onShowInBounds, onOpenDetails, totalCount, mappableCount, compactMobile = false
 }) {
+  const { categories } = useCategories()
   return (
     <aside className={`flex min-h-0 h-full w-full flex-col bg-slate-50 ${compactMobile ? '' : 'border-r border-slate-200'}`}>
       <div className="border-b border-slate-200 bg-white p-4">
@@ -24,7 +25,7 @@ export default function Sidebar({
           <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <select value={category} onChange={(e) => onCategoryChange(e.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50">
             <option value="all">Tất cả danh mục</option>
-            {CATEGORIES.map((item) => <option value={item.key} key={item.key}>{item.label}</option>)}
+            {categories.map((item) => <option value={item.key} key={item.key}>{item.label}</option>)}
           </select>
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
         </div>

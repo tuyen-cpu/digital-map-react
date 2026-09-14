@@ -13,6 +13,7 @@ import { apiRecordTravel, apiGetTravelHistory, apiDeleteTravelHistory, apiGetRem
 import { apiTrackEvent, apiGetAnalyticsEvents, apiClearAnalytics } from '../services/analyticsService'
 import { apiGetSiteConfig, apiUpdateSiteConfig, apiResetSiteConfig } from '../services/siteConfigService'
 import { apiGetUsers, apiUpdateUser, apiDeleteUser, apiResetUserPassword } from '../services/adminService'
+import { apiGetCategories, apiCreateCategory, apiUpdateCategory, apiDeleteCategory } from '../services/categoryService'
 
 const ApiStateContext = createContext(null)
 
@@ -61,6 +62,7 @@ export function ApiStateProvider({ children }) {
   const [analyticsEvents, setAnalyticsEvents] = useState([])
   const [siteSettings, setSiteSettings] = useState(null)
   const [users, setUsers] = useState([])
+  const [categories, setCategories] = useState([])
   const [reviewNotificationReads, setReviewNotificationReads] = useState(() => {
     try { return JSON.parse(localStorage.getItem('binh-dinh:review-notification-reads-v1') || '{}') } catch { return {} }
   })
@@ -97,6 +99,11 @@ export function ApiStateProvider({ children }) {
     apiGetSiteConfig()
       .then(setSiteSettings)
       .catch(() => {})
+
+    // Load categories (public)
+    apiGetCategories().then((data) => {
+      setCategories(Array.isArray(data) ? data : [])
+    }).catch(() => {})
 
     // Load all locations once (public)
     apiGetLocations().then((data) => {
@@ -420,6 +427,32 @@ export function ApiStateProvider({ children }) {
   }
 
   // ---------------------------------------------------------------------------
+  // Categories
+  // ---------------------------------------------------------------------------
+  const refreshCategories = async () => {
+    const data = await apiGetCategories()
+    setCategories(Array.isArray(data) ? data : [])
+    return data
+  }
+
+  const addCategory = async (data) => {
+    const cat = await apiCreateCategory(data)
+    setCategories((prev) => [...prev, cat].sort((a, b) => a.order - b.order || a.key.localeCompare(b.key)))
+    return cat
+  }
+
+  const updateCategory = async (key, data) => {
+    const cat = await apiUpdateCategory(key, data)
+    setCategories((prev) => prev.map((c) => c.key === key ? cat : c))
+    return cat
+  }
+
+  const deleteCategory = async (key) => {
+    await apiDeleteCategory(key)
+    setCategories((prev) => prev.filter((c) => c.key !== key))
+  }
+
+  // ---------------------------------------------------------------------------
   // Review notifications (admin/manager)
   // ---------------------------------------------------------------------------
   const reviewNotifications = useMemo(() => {
@@ -538,12 +571,20 @@ export function ApiStateProvider({ children }) {
     trackEvent,
     clearAnalytics,
     markReviewNotificationsRead,
+
+    // Categories
+    categories: categories ?? [],
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    refreshCategories,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [
     session, locations, locationsLoaded, favorites, reviews, travelHistory,
     currentTravelHistory, reminders, currentReminders, analyticsEvents,
     siteSettings, users, reviewNotifications, unreadReviewNotifications,
     toggleFavorite, isFavorite, canManageLocation, canManageCategory, recordTravel, trackEvent,
+    categories,
   ])
 
   return <ApiStateContext.Provider value={value}>{children}</ApiStateContext.Provider>

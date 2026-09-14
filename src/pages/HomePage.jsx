@@ -54,7 +54,7 @@ export default function HomePage() {
             <p className="mt-6 max-w-2xl text-base font-medium leading-7 text-white drop-shadow-md sm:text-lg">Du lịch, văn hóa, ẩm thực, lưu trú, tiện ích và cơ quan hành chính — tìm kiếm và dẫn đường trực tiếp ngay trong website.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/kham-pha-dia-diem" className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/20 hover:bg-brand-500">Khám phá địa điểm <ArrowRight size={17} /></Link>
-              <Link to="/" className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/15 px-5 py-3.5 text-sm font-black text-white backdrop-blur hover:bg-white/25"><Map size={17} />Xem bản đồ</Link>
+              <Link to="/ban-do-du-lich" className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/15 px-5 py-3.5 text-sm font-black text-white backdrop-blur hover:bg-white/25"><Map size={17} />Xem bản đồ</Link>
             </div>
           </div>
 

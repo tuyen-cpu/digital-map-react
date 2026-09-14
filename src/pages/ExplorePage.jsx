@@ -6,11 +6,12 @@ import LocationCard from '../components/LocationCard'
 import LocationDetailDrawer from '../components/LocationDetailDrawer'
 import PanoramaModal from '../components/PanoramaModal'
 import { useAppState } from '../context/AppStateContext'
-import { CATEGORIES } from '../utils/categories'
+import { useCategories } from '../hooks/useCategories'
 import { locationMatches } from '../utils/text'
 
 export default function ExplorePage() {
   const { locations, trackEvent } = useAppState()
+  const { categories: CATEGORIES } = useCategories()
   const [params, setParams] = useSearchParams()
   const initialCategory = CATEGORIES.some((item) => item.key === params.get('category')) ? params.get('category') : 'all'
   const [search, setSearch] = useState(params.get('q') || '')

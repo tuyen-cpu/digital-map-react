@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart3, Bell, Building2, Database, Download, Image, KeyRound, LayoutDashboard, MapPin, Navigation, Pencil, Plus, RotateCcw, Search, Star, Trash2, Upload, Users } from 'lucide-react'
+import { BarChart3, Bell, Building2, Database, Download, Image, KeyRound, LayoutDashboard, Layers, MapPin, Navigation, Pencil, Plus, RotateCcw, Search, Star, Trash2, Upload, Users } from 'lucide-react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import AuthShell from '../components/AuthShell'
 import AdminLocationModal from '../components/AdminLocationModal'
 import AdminReportsPanel from '../components/AdminReportsPanel'
 import AdminReviewItem from '../components/AdminReviewItem'
 import AdminUserModal from '../components/AdminUserModal'
+import AdminCategoriesTab from '../components/AdminCategoriesTab'
 import MediaImage from '../components/MediaImage'
 import { useDebounce } from '../hooks/useDebounce'
 import { useAppState } from '../context/AppStateContext'
+import { useCategories } from '../hooks/useCategories'
 import { uploadMedia } from '../services/mediaService'
 import { CATEGORIES, getCategory } from '../utils/categories'
-import { downloadExcelWorkbook } from '../utils/excelExport'
 import { hasCoordinates } from '../utils/format'
 import { formatVietnamPhone } from '../utils/phone'
 import { locationMatches } from '../utils/text'
@@ -21,9 +22,7 @@ function dateTime(value) {
   try { return new Date(value).toLocaleString('vi-VN') } catch { return value }
 }
 
-function categoryLabel(key) {
-  return getCategory(key)?.label || key || ''
-}
+
 
 export default function AdminPage({ mode = 'admin' }) {
   const {
@@ -32,7 +31,11 @@ export default function AdminPage({ mode = 'admin' }) {
     reviews, replyToReview, deleteReview, analyticsEvents, clearAnalytics, siteSettings, siteSettingsLoaded, updateSiteSettings, resetSiteSettings,
     unreadReviewNotifications, markReviewNotificationsRead
   } = useAppState()
+  const { categories: liveCategories, getCategory: getLiveCat } = useCategories()
   const managerPortal = mode === 'manager'
+
+  // Dùng live categories để label
+  const categoryLabel = (key) => getLiveCat(key)?.label || key || ''
   const authenticated = managerPortal ? session?.role === 'manager' : session?.role === 'admin'
   const isAdmin = !managerPortal && session?.role === 'admin'
   const [searchParams, setSearchParams] = useSearchParams()
@@ -50,7 +53,7 @@ export default function AdminPage({ mode = 'admin' }) {
   const manageableLocationIds = useMemo(() => new Set(manageableLocations.map((item) => item.id)), [manageableLocations])
   const manageableReviews = useMemo(() => isAdmin ? reviews : reviews.filter((review) => manageableLocationIds.has(review.locationId)), [isAdmin, manageableLocationIds, reviews])
   const scopedAnalyticsEvents = useMemo(() => isAdmin ? analyticsEvents : analyticsEvents.filter((event) => event.locationId && manageableLocationIds.has(event.locationId)), [analyticsEvents, isAdmin, manageableLocationIds])
-  const allowedCategories = useMemo(() => isAdmin ? CATEGORIES.map((item) => item.key) : CATEGORIES.filter((item) => canManageCategory(item.key)).map((item) => item.key), [isAdmin, session?.permissions])
+  const allowedCategories = useMemo(() => isAdmin ? liveCategories.map((item) => item.key) : liveCategories.filter((item) => canManageCategory(item.key)).map((item) => item.key), [isAdmin, session?.permissions])
 
   const stats = useMemo(() => ({
     total: manageableLocations.length,
@@ -83,7 +86,7 @@ export default function AdminPage({ mode = 'admin' }) {
     return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 10)
   }, [locationViews])
 
-  const allowedTabKeys = isAdmin ? ['overview', 'locations', 'reviews', 'reports', 'slides', 'users'] : ['overview', 'locations', 'reviews', 'reports']
+  const allowedTabKeys = isAdmin ? ['overview', 'locations', 'reviews', 'reports', 'slides', 'users', 'categories'] : ['overview', 'locations', 'reviews', 'reports']
 
   useEffect(() => {
     const requested = searchParams.get('tab')
@@ -109,8 +112,14 @@ export default function AdminPage({ mode = 'admin' }) {
       const account = await login(form)
       const accepted = managerPortal ? account.role === 'manager' : account.role === 'admin'
       if (!accepted) {
-        await logout()
-        throw new Error(managerPortal ? 'Tài khoản này chưa được cấp quyền quản lý nhóm.' : 'Chỉ tài khoản quản trị viên được vào trang quản trị.')
+        // Logout mà không navigate — chỉ clear token, giữ nguyên trang để hiển thị lỗi
+        try {
+          const refreshToken = localStorage.getItem('binh-dinh:jwt-refresh')
+          const { apiLogout } = await import('../services/authService')
+          await apiLogout(refreshToken)
+        } catch {}
+        setError(managerPortal ? 'Tài khoản này chưa được cấp quyền quản lý nhóm.' : 'Chỉ tài khoản quản trị viên được vào trang quản trị.')
+        return
       }
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Thông tin đăng nhập không đúng.')
@@ -129,7 +138,7 @@ export default function AdminPage({ mode = 'admin' }) {
         <form onSubmit={submit} className="space-y-4">
           <label className="block"><span className="text-sm font-bold text-blue-950">Tên đăng nhập</span><input required autoComplete="username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="mt-2 w-full rounded-xl border border-blue-100 bg-white px-3 py-3 text-blue-950 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" /></label>
           <label className="block"><span className="text-sm font-bold text-blue-950">Mật khẩu</span><input type="password" required autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="mt-2 w-full rounded-xl border border-blue-100 bg-white px-3 py-3 text-blue-950 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" /></label>
-          {error && <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">{error}</p>}
+          {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <button type="submit" className="w-full rounded-xl bg-brand-600 px-4 py-3 font-bold text-white shadow-sm hover:bg-brand-700">{managerPortal ? 'Đăng nhập khu vực quản lý' : 'Đăng nhập quản trị'}</button>
         </form>
       </AuthShell>
@@ -232,6 +241,7 @@ export default function AdminPage({ mode = 'admin' }) {
     { key: 'reviews', label: `Đánh giá${unreadReviewNotifications?.length ? ` (${unreadReviewNotifications.length})` : ''}`, icon: Star },
     { key: 'reports', label: 'Báo cáo Excel', icon: BarChart3 },
     ...(isAdmin ? [
+      { key: 'categories', label: 'Danh mục', icon: Layers },
       { key: 'slides', label: 'Trang chủ', icon: Image },
       { key: 'users', label: 'Tài khoản & phân quyền', icon: Users }
     ] : [])
@@ -268,10 +278,12 @@ export default function AdminPage({ mode = 'admin' }) {
 
         {tab === 'locations' && <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-4 shadow-card sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Địa điểm</p><h2 className="mt-1 text-2xl font-black text-blue-950">Danh sách & chỉnh sửa</h2></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setEditor({ open: true, location: null })} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700"><Plus size={17} />Thêm địa điểm</button><button type="button" onClick={exportCatalog} className="inline-flex items-center gap-2 rounded-xl border border-blue-100 px-3 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50"><Download size={16} />Xuất Excel danh mục</button>{isAdmin && <button type="button" onClick={() => { if (window.confirm('Khôi phục toàn bộ dữ liệu địa điểm về bản mặc định?')) { resetLocations().then(() => setNotice('Đã khôi phục dữ liệu mặc định.')).catch(e => setNotice(e?.response?.data?.detail || e.message || 'Lỗi khôi phục.')) } }} className="inline-flex items-center gap-2 rounded-xl border border-blue-100 px-3 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50"><RotateCcw size={16} />Khôi phục</button>}</div></div>
-          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_280px]"><label className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-300" size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm tên, địa chỉ, số điện thoại..." className="w-full rounded-xl border border-blue-100 bg-blue-50/40 py-3 pl-10 pr-3 text-sm outline-none focus:border-brand-300 focus:bg-white focus:ring-4 focus:ring-brand-50" /></label><select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-blue-100 bg-white px-3 py-3 text-sm font-semibold text-blue-900 outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Tất cả danh mục được phép</option>{CATEGORIES.filter((item) => isAdmin || manageableLocations.some((loc) => loc.category === item.key)).map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_280px]"><label className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-300" size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm tên, địa chỉ, số điện thoại..." className="w-full rounded-xl border border-blue-100 bg-blue-50/40 py-3 pl-10 pr-3 text-sm outline-none focus:border-brand-300 focus:bg-white focus:ring-4 focus:ring-brand-50" /></label><select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-blue-100 bg-white px-3 py-3 text-sm font-semibold text-blue-900 outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Tất cả danh mục được phép</option>{liveCategories.filter((item) => isAdmin || manageableLocations.some((loc) => loc.category === item.key)).map((item) => <option key={item.key} value={item.key}>{item.emoji} {item.label}</option>)}</select></div>
           <p className="mt-3 text-xs text-blue-500">Hiển thị {filtered.length}/{manageableLocations.length} địa điểm trong phạm vi của tài khoản.</p>
-          <div className="mt-4 overflow-hidden rounded-2xl border border-blue-100"><div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_140px_110px] gap-3 bg-blue-50 px-4 py-3 text-[11px] font-black uppercase tracking-wide text-blue-500 md:grid"><span>Địa điểm</span><span>Địa chỉ</span><span>Danh mục</span><span className="text-right">Thao tác</span></div><div className="max-h-[650px] divide-y divide-blue-50 overflow-y-auto">{filtered.map((location) => { const cat = getCategory(location.category); return <div key={location.id} className="grid gap-3 px-4 py-3 hover:bg-blue-50/40 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_140px_110px] md:items-center"><div className="flex min-w-0 items-center gap-3"><MediaImage src={location.image} alt="" className="h-12 w-16 shrink-0 rounded-lg bg-blue-50 object-cover" loading="lazy" /><div className="min-w-0"><p className="truncate text-sm font-black text-blue-950">{location.name}</p><p className="mt-0.5 truncate text-xs text-blue-500">{location.subgroup || location.group}</p></div></div><p className="text-xs leading-5 text-blue-800/70 md:line-clamp-2">{location.address || 'Chưa có địa chỉ'}</p><span className="w-fit rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-brand-700">{cat.emoji} {cat.shortLabel}</span><div className="flex justify-end gap-1"><button type="button" onClick={() => setEditor({ open: true, location })} className="rounded-lg p-2 text-brand-700 hover:bg-blue-100" title="Sửa"><Pencil size={17} /></button><button type="button" onClick={() => removeLocation(location)} className="rounded-lg p-2 text-blue-500 hover:bg-blue-100 hover:text-blue-800" title="Xóa"><Trash2 size={17} /></button></div></div>})}{!filtered.length && <p className="p-10 text-center text-sm text-blue-400">Không có địa điểm phù hợp.</p>}</div></div>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-blue-100"><div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_140px_110px] gap-3 bg-blue-50 px-4 py-3 text-[11px] font-black uppercase tracking-wide text-blue-500 md:grid"><span>Địa điểm</span><span>Địa chỉ</span><span>Danh mục</span><span className="text-right">Thao tác</span></div><div className="max-h-[650px] divide-y divide-blue-50 overflow-y-auto">{filtered.map((location) => { const cat = getLiveCat(location.category); return <div key={location.id} className="grid gap-3 px-4 py-3 hover:bg-blue-50/40 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_140px_110px] md:items-center"><div className="flex min-w-0 items-center gap-3"><MediaImage src={location.image} alt="" className="h-12 w-16 shrink-0 rounded-lg bg-blue-50 object-cover" loading="lazy" /><div className="min-w-0"><p className="truncate text-sm font-black text-blue-950">{location.name}</p><p className="mt-0.5 truncate text-xs text-blue-500">{location.subgroup || location.group}</p></div></div><p className="text-xs leading-5 text-blue-800/70 md:line-clamp-2">{location.address || 'Chưa có địa chỉ'}</p><span className="w-fit rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-brand-700">{cat.emoji} {cat.shortLabel}</span><div className="flex justify-end gap-1"><button type="button" onClick={() => setEditor({ open: true, location })} className="rounded-lg p-2 text-brand-700 hover:bg-blue-100" title="Sửa"><Pencil size={17} /></button><button type="button" onClick={() => removeLocation(location)} className="rounded-lg p-2 text-blue-500 hover:bg-blue-100 hover:text-blue-800" title="Xóa"><Trash2 size={17} /></button></div></div>})}{!filtered.length && <p className="p-10 text-center text-sm text-blue-400">Không có địa điểm phù hợp.</p>}</div></div>
         </section>}
+
+        {isAdmin && tab === 'categories' && <AdminCategoriesTab locations={manageableLocations} setNotice={setNotice} />}
 
         {isAdmin && tab === 'slides' && <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-4 shadow-card sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -313,6 +325,9 @@ export default function AdminPage({ mode = 'admin' }) {
     </main>
   )
 }
+
+
+
 
 
 

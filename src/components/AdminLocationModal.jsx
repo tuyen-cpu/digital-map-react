@@ -3,25 +3,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import { uploadMedia } from '../services/mediaService'
 import { getCurrentPosition } from '../services/routing'
-import { CATEGORIES } from '../utils/categories'
+import { useCategories } from '../hooks/useCategories'
 import MediaImage from './MediaImage'
 import MediaVideo from './MediaVideo'
 
 const DEFAULT_CENTER = [13.8932, 109.058]
-
-const FALLBACK_OPTIONS = {
-  tourism: {
-    groups: ['Di tích lịch sử / khảo cổ', 'Văn hóa / du lịch / tâm linh', 'Điểm tham quan', 'Làng nghề / trải nghiệm'],
-    subgroups: ['Di tích lịch sử', 'Lịch sử - kiến trúc', 'Chùa', 'Đình làng', 'Miếu', 'Tâm linh', 'Làng nghề / trải nghiệm', 'Làng võ / trải nghiệm', 'Nhà văn hóa', 'Điểm tham quan đô thị'],
-    keywords: ['lịch sử', 'kiến trúc', 'di tích', 'tâm linh', 'văn hóa', 'tham quan', 'làng nghề', 'võ cổ truyền']
-  },
-  lodging: { groups: ['Lưu trú du lịch'], subgroups: ['Khách sạn', 'Nhà nghỉ', 'Khách sạn / nhà nghỉ', 'Homestay'], keywords: ['lưu trú', 'khách sạn', 'nhà nghỉ', 'homestay'] },
-  food: { groups: ['Ẩm thực / nhà hàng / cafe', 'Ẩm thực / đồ uống'], subgroups: ['Nhà hàng', 'Quán ăn', 'Cafe', 'Trà sữa', 'Bánh xèo', 'Bún bò', 'Phở', 'Cơm gia đình', 'Hải sản / ốc', 'Lẩu nướng', 'Đặc sản / cơ sở sản xuất'], keywords: ['ẩm thực', 'quán ăn', 'nhà hàng', 'cafe', 'trà sữa', 'đặc sản', 'ăn sáng', 'ăn tối'] },
-  entertainment: { groups: ['Vui chơi / thể thao'], subgroups: ['Công viên', 'Karaoke', 'Gym', 'Billiards', 'Sân bóng / cafe', 'Sân vận động', 'Công viên giải trí', 'Trẻ em'], keywords: ['giải trí', 'thể thao', 'công viên', 'karaoke', 'gym', 'trẻ em'] },
-  health: { groups: ['Y tế / chăm sóc sức khỏe'], subgroups: ['Trạm y tế', 'Phòng khám', 'Nhà thuốc', 'Nha khoa'], keywords: ['y tế', 'sức khỏe', 'phòng khám', 'nhà thuốc', 'nha khoa'] },
-  administration: { groups: ['Cơ quan hành chính', 'Cơ quan hành chính / dịch vụ công', 'Cơ quan hành chính / an ninh', 'Cơ quan hành chính / quốc phòng', 'Cơ quan chuyên môn', 'Đơn vị sự nghiệp công'], subgroups: ['Ủy ban nhân dân phường', 'Công an phường', 'Trung tâm Phục vụ hành chính công', 'Đảng', 'Ban Chỉ huy Quân sự', 'Văn phòng HĐND và UBND', 'Văn hóa - Xã hội', 'Dịch vụ sự nghiệp công'], keywords: ['UBND', 'Công an', 'hành chính', 'dịch vụ công', 'an ninh', 'quốc phòng', 'chính quyền'] },
-  utility: { groups: ['Ngân hàng / ATM', 'Mua sắm / chợ / siêu thị', 'Bưu chính / viễn thông / điện / nhiên liệu', 'Giáo dục'], subgroups: ['Ngân hàng', 'ATM', 'Chợ', 'Siêu thị', 'Siêu thị mini', 'Cửa hàng tiện lợi', 'Bưu chính', 'Xăng dầu', 'Điện lực', 'Viễn thông', 'Mầm non công lập', 'Tiểu học công lập', 'THCS công lập', 'THPT'], keywords: ['ngân hàng', 'ATM', 'chợ', 'siêu thị', 'bưu chính', 'điện lực', 'viễn thông', 'giáo dục', 'trường học'] }
-}
 
 const EMPTY = {
   name: '', category: 'utility', group: '', subgroup: '', address: '', lat: '', lng: '',
@@ -153,6 +139,7 @@ function MediaThumb({ item, kind, onRemove }) {
 }
 
 export default function AdminLocationModal({ open, location, allLocations = [], allowedCategories = [], onClose, onSave, onDelete }) {
+  const { categories: liveCats, getCategory: getLiveCat } = useCategories()
   const [form, setForm] = useState(fromLocation(location))
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
@@ -170,14 +157,21 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
   }, [open, location, allowedCategories])
 
   const optionSets = useMemo(() => {
+    // Live suggestions from DB (via context)
+    const liveCat = liveCats.find((c) => c.key === form.category) || {}
+    const dbGroups = liveCat.suggestedGroups || []
+    const dbSubgroups = liveCat.suggestedSubgroups || []
+    const dbKeywords = liveCat.suggestedKeywords || []
+
+    // Also pull unique values already used by existing locations in same category
     const sameCategory = allLocations.filter((item) => item.category === form.category)
-    const fallback = FALLBACK_OPTIONS[form.category] || { groups: [], subgroups: [] }
+
     return {
-      groups: unique([...fallback.groups, ...sameCategory.map((item) => item.group)]),
-      subgroups: unique([...fallback.subgroups, ...sameCategory.map((item) => item.subgroup)]),
-      keywords: unique([...(fallback.keywords || []), ...sameCategory.flatMap((item) => splitKeywords(item.keywords))])
+      groups: unique([...dbGroups, ...sameCategory.map((item) => item.group)]),
+      subgroups: unique([...dbSubgroups, ...sameCategory.map((item) => item.subgroup)]),
+      keywords: unique([...dbKeywords, ...sameCategory.flatMap((item) => splitKeywords(item.keywords))])
     }
-  }, [allLocations, form.category])
+  }, [allLocations, form.category, liveCats])
 
   if (!open) return null
   const patch = (key, value) => setForm((current) => ({ ...current, [key]: value }))
@@ -252,7 +246,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
           {error && <p className="mb-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">{error}</p>}
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Tên địa điểm" className="md:col-span-2"><input className={inputClass} value={form.name} onChange={(e) => patch('name', e.target.value)} required /></Field>
-            <Field label="Danh mục"><select className={inputClass} value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value, group: '', subgroup: '', keywords: '' }))}>{CATEGORIES.filter((item) => !allowedCategories.length || allowedCategories.includes(item.key) || item.key === form.category).map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></Field>
+            <Field label="Danh mục"><select className={inputClass} value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value, group: '', subgroup: '', keywords: '' }))}>{liveCats.filter((item) => !allowedCategories.length || allowedCategories.includes(item.key) || item.key === form.category).map((item) => <option key={item.key} value={item.key}>{item.emoji} {item.label}</option>)}</select></Field>
             <OptionSelect label="Phân nhóm" value={form.group} onChange={(value) => patch('group', value)} options={optionSets.groups} />
             <OptionSelect label="Phân nhóm chi tiết" value={form.subgroup} onChange={(value) => patch('subgroup', value)} options={optionSets.subgroups} />
             <Field label="Giờ hoạt động"><input className={inputClass} value={form.hours || ''} onChange={(e) => patch('hours', e.target.value)} placeholder="06:00 - 22:00" /></Field>
