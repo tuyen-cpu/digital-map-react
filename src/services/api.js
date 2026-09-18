@@ -4,7 +4,10 @@
  */
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const BASE_URL = import.meta.env.VITE_API_URL
+if (!BASE_URL) {
+  throw new Error('VITE_API_URL is not configured')
+}
 const TOKEN_KEY = 'binh-dinh:jwt-token'
 const REFRESH_KEY = 'binh-dinh:jwt-refresh'
 
