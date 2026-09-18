@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthShell from '../components/AuthShell'
+import PasswordInput from '../components/PasswordInput'
 import { useAppState } from '../context/AppStateContext'
 import { formatVietnamPhone, isValidVietnamMobilePhone, VIETNAM_PHONE_HELP } from '../utils/phone'
 
@@ -37,8 +38,8 @@ export default function RegisterPage() {
         <label className="block"><span className="text-sm font-bold text-blue-950">Tên hiển thị</span><input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} className={inputClass} /></label>
         <label className="block"><span className="text-sm font-bold text-blue-950">Tên đăng nhập</span><input required autoComplete="username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className={inputClass} /></label>
         <label className="block"><span className="text-sm font-bold text-blue-950">Số điện thoại <span className="font-normal text-blue-400">(bắt buộc)</span></span><input required inputMode="tel" autoComplete="tel" maxLength={16} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9+ .-]/g, '') })} onBlur={(e) => { if (isValidVietnamMobilePhone(e.target.value)) setForm((current) => ({ ...current, phone: formatVietnamPhone(e.target.value) })) }} placeholder="09xx xxx xxx" className={inputClass} /><span className="mt-1.5 block text-[11px] leading-5 text-blue-500">{VIETNAM_PHONE_HELP}</span></label>
-        <label className="block"><span className="text-sm font-bold text-blue-950">Mật khẩu <span className="font-normal text-blue-400">(tối thiểu 6 ký tự)</span></span><input type="password" required minLength={6} autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={inputClass} /></label>
-        <label className="block"><span className="text-sm font-bold text-blue-950">Xác nhận mật khẩu</span><input type="password" required value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} className={inputClass} /></label>
+        <label className="block"><span className="text-sm font-bold text-blue-950">Mật khẩu <span className="font-normal text-blue-400">(tối thiểu 6 ký tự)</span></span><PasswordInput required minLength={6} autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={inputClass.replace('mt-2 ', '')} /></label>
+        <label className="block"><span className="text-sm font-bold text-blue-950">Xác nhận mật khẩu</span><PasswordInput required value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} className={inputClass.replace('mt-2 ', '')} /></label>
         {error && <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">{error}</p>}
         <button type="submit" className="w-full rounded-xl bg-brand-600 px-4 py-3 font-bold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-4 focus:ring-brand-200">Tạo tài khoản</button>
       </form>
