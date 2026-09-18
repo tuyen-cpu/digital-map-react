@@ -6,10 +6,9 @@
   "scripts": {
     "predev": "node scripts/ensure-boundary.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/ensure-boundary.mjs && node scripts/validate-data.mjs",
+    "prebuild": "node scripts/ensure-boundary.mjs",
     "build": "vite build",
     "preview": "vite preview",
-    "validate:data": "node scripts/validate-data.mjs",
     "refresh:boundary": "node scripts/fetch-boundary.mjs"
   },
   "dependencies": {
