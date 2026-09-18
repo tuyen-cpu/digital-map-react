@@ -12,9 +12,9 @@ import MediaVideo from './MediaVideo'
 function DetailRow({ label, children }) {
   if (children == null || children === '') return null
   return (
-    <div className="grid gap-1 border-b border-blue-50 py-3.5 sm:grid-cols-[145px_1fr] sm:gap-4">
+    <div className="grid min-w-0 gap-1 border-b border-blue-50 py-3.5 sm:grid-cols-[145px_minmax(0,1fr)] sm:gap-4">
       <dt className="text-[11px] font-black uppercase tracking-[0.08em] text-blue-400">{label}</dt>
-      <dd className="text-sm leading-6 text-blue-950/80">{children}</dd>
+      <dd className="min-w-0 break-words text-sm leading-6 text-blue-950/80">{children}</dd>
     </div>
   )
 }
@@ -57,7 +57,7 @@ export default function LocationDetailContent({ location, onNavigate, onPanorama
 
   return (
     <div>
-      <div className="grid min-h-0 lg:grid-cols-[minmax(0,.96fr)_minmax(0,1.04fr)]">
+      <div className="grid min-w-0 min-h-0 lg:grid-cols-[minmax(0,.96fr)_minmax(0,1.04fr)]">
         <div className="border-b border-blue-100 bg-blue-50/50 p-4 sm:p-6 lg:border-b-0 lg:border-r">
           <MediaGallery location={location} />
           <span className="mt-3 inline-flex rounded-full border border-blue-100 bg-white px-3 py-1 text-[11px] font-bold text-brand-700">{category.emoji} {category.label}</span>
