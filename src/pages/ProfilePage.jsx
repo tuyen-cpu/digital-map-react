@@ -4,9 +4,11 @@ import { Link, Navigate } from 'react-router-dom'
 import MediaImage from '../components/MediaImage'
 import VisitedMap from '../components/VisitedMap'
 import { useAppState } from '../context/AppStateContext'
-import { saveMediaFile } from '../services/mediaDb'
+import { uploadMedia } from '../services/mediaService'
 import { formatVietnamPhone, isValidVietnamMobilePhone, VIETNAM_PHONE_HELP } from '../utils/phone'
 import { locationMatches } from '../utils/text'
+
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024 // 5 MB
 
 function dateTime(value) {
   if (!value) return '—'
@@ -25,6 +27,7 @@ export default function ProfilePage() {
   } = useAppState()
   const [form, setForm] = useState({ displayName: '', phone: '', avatar: '' })
   const [notice, setNotice] = useState('')
+  const [noticeError, setNoticeError] = useState(false)
   const [avatarBusy, setAvatarBusy] = useState(false)
   const [reminderForm, setReminderForm] = useState({ locationId: '', scheduledAt: localInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000)), note: '' })
   const [reminderQuery, setReminderQuery] = useState('')
@@ -49,11 +52,17 @@ export default function ProfilePage() {
   const submit = async (event) => {
     event.preventDefault()
     setNotice('')
-    if (!isValidVietnamMobilePhone(form.phone)) return setNotice(VIETNAM_PHONE_HELP)
+    setNoticeError(false)
+    if (!isValidVietnamMobilePhone(form.phone)) {
+      setNoticeError(true)
+      return setNotice(VIETNAM_PHONE_HELP)
+    }
     try {
       await updateProfile(form)
+      setNoticeError(false)
       setNotice('Đã cập nhật thông tin tài khoản.')
     } catch (e) {
+      setNoticeError(true)
       setNotice(e.message || 'Không cập nhật được tài khoản.')
     }
   }
@@ -62,12 +71,20 @@ export default function ProfilePage() {
     if (!file) return
     setAvatarBusy(true)
     setNotice('')
+    setNoticeError(false)
     try {
-      const ref = await saveMediaFile(file, { kind: 'avatar', maxBytes: 5 * 1024 * 1024 })
-      setForm((current) => ({ ...current, avatar: ref }))
-      updateProfile({ displayName: form.displayName, phone: form.phone, avatar: ref })
+      if (file.size > AVATAR_MAX_BYTES) {
+        setNoticeError(true)
+        setNotice('Ảnh đại diện không được vượt quá 5 MB.')
+        return
+      }
+      const url = await uploadMedia(file, { folder: 'avatars' })
+      setForm((current) => ({ ...current, avatar: url }))
+      await updateProfile({ displayName: form.displayName, phone: form.phone, avatar: url })
+      setNoticeError(false)
       setNotice('Đã cập nhật ảnh đại diện.')
     } catch (e) {
+      setNoticeError(true)
       setNotice(e.message || 'Không tải được ảnh đại diện.')
     } finally {
       setAvatarBusy(false)
@@ -77,14 +94,17 @@ export default function ProfilePage() {
   const createReminder = async (event) => {
     event.preventDefault()
     setNotice('')
+    setNoticeError(false)
     try {
       await addReminder(reminderForm)
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {})
+      setNoticeError(false)
       setNotice('Đã tạo lịch nhắc. Nếu trình duyệt cho phép thông báo, website sẽ nhắc khi đang mở.')
       setReminderForm({ locationId: '', note: '', scheduledAt: localInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000)) })
       setReminderQuery('')
       setReminderSearchOpen(false)
     } catch (e) {
+      setNoticeError(true)
       setNotice(e.message || 'Không tạo được lịch nhắc.')
     }
   }
@@ -99,7 +119,7 @@ export default function ProfilePage() {
           {session.role === 'manager' && <Link to="/quan-ly" className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white">Mở khu vực quản lý</Link>}
         </div>
 
-        {notice && <div className="mt-5 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-700 shadow-card">{notice}</div>}
+        {notice && <div className={`mt-5 rounded-xl border px-4 py-3 text-sm font-semibold shadow-card ${noticeError ? 'border-red-200 bg-red-50 text-red-700' : 'border-blue-200 bg-white text-blue-700'}`}>{notice}</div>}
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[420px_1fr]">
           <section className="rounded-3xl border border-blue-100 bg-white p-5 shadow-card sm:p-6">
