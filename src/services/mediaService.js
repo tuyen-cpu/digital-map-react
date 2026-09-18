@@ -17,10 +17,17 @@ export async function uploadMedia(file, { folder = 'locations' } = {}) {
   formData.append('file', file)
   formData.append('folder', folder)
 
-  const res = await api.post('/media/upload/', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-  return res.data.url   // URL R2 public
+  try {
+    const res = await api.post('/media/upload/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data.url   // URL R2 public
+  } catch (err) {
+    // Ưu tiên lấy message từ response body (detail field của DRF)
+    const detail = err?.response?.data?.detail || err?.response?.data?.error
+    if (detail) throw new Error(detail)
+    throw err
+  }
 }
 
 /**

@@ -1,4 +1,4 @@
-import { Bell, CalendarClock, Camera, CheckCircle2, Clock3, KeyRound, MapPin, Navigation, Save, Search, Trash2, UserRound } from 'lucide-react'
+import { Bell, CalendarClock, Camera, CheckCircle2, Clock3, KeyRound, LoaderCircle, MapPin, Navigation, Save, Search, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import MediaImage from '../components/MediaImage'
@@ -28,6 +28,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ displayName: '', phone: '', avatar: '' })
   const [notice, setNotice] = useState('')
   const [noticeError, setNoticeError] = useState(false)
+  const [profileBusy, setProfileBusy] = useState(false)
   const [avatarBusy, setAvatarBusy] = useState(false)
   const [reminderForm, setReminderForm] = useState({ locationId: '', scheduledAt: localInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000)), note: '' })
   const [reminderQuery, setReminderQuery] = useState('')
@@ -57,6 +58,7 @@ export default function ProfilePage() {
       setNoticeError(true)
       return setNotice(VIETNAM_PHONE_HELP)
     }
+    setProfileBusy(true)
     try {
       await updateProfile(form)
       setNoticeError(false)
@@ -64,6 +66,8 @@ export default function ProfilePage() {
     } catch (e) {
       setNoticeError(true)
       setNotice(e.message || 'Không cập nhật được tài khoản.')
+    } finally {
+      setProfileBusy(false)
     }
   }
 
@@ -110,6 +114,7 @@ export default function ProfilePage() {
   }
 
   const inputClass = 'mt-2 w-full rounded-xl border border-blue-100 bg-white px-3 py-3 text-blue-950 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100'
+  const SaveIcon = profileBusy ? LoaderCircle : Save
 
   return (
     <main className="min-h-[calc(100dvh-5rem)] bg-gradient-to-br from-white via-blue-50/70 to-sky-100/60 px-2.5 py-4 sm:px-6 sm:py-9 lg:px-8">
@@ -132,7 +137,7 @@ export default function ProfilePage() {
               <label className="block"><span className="text-sm font-bold text-blue-950">Tên đăng nhập</span><input disabled value={session.username} className={`${inputClass} cursor-not-allowed bg-blue-50 text-blue-500`} /></label>
               <label className="block"><span className="text-sm font-bold text-blue-950">Tên hiển thị</span><input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} className={inputClass} /></label>
               <label className="block"><span className="text-sm font-bold text-blue-950">Số điện thoại</span><input required inputMode="tel" maxLength={16} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9+ .-]/g, '') })} className={inputClass} /><span className="mt-1.5 block text-[11px] text-blue-500">{VIETNAM_PHONE_HELP}</span></label>
-              <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-black text-white hover:bg-brand-700"><Save size={17} />Lưu thông tin</button>
+              <button type="submit" disabled={profileBusy} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-black text-white transition hover:bg-brand-700 disabled:cursor-wait disabled:opacity-70"><SaveIcon size={17} className={profileBusy ? 'animate-spin' : ''} />{profileBusy ? 'Đang lưu...' : 'Lưu thông tin'}</button>
               <Link to="/doi-mat-khau" className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 px-4 py-3 text-sm font-black text-brand-700 hover:bg-blue-50"><KeyRound size={17} />Đổi mật khẩu</Link>
             </form>
           </section>

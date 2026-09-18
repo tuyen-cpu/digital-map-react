@@ -142,6 +142,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
   const { categories: liveCats, getCategory: getLiveCat } = useCategories()
   const [form, setForm] = useState(fromLocation(location))
   const [error, setError] = useState('')
+  const [uploadError, setUploadError] = useState('')
   const [busy, setBusy] = useState('')
   const [showPicker, setShowPicker] = useState(false)
 
@@ -151,6 +152,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
       if (!location && allowedCategories.length && !allowedCategories.includes(next.category)) next.category = allowedCategories[0]
       setForm(next)
       setError('')
+      setUploadError('')
       setBusy('')
       setShowPicker(false)
     }
@@ -197,6 +199,18 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
     if (!list.length) return
     setError('')
     setBusy(kind)
+
+    const MAX_IMAGE_BYTES = 8 * 1024 * 1024   // 8 MB
+    const MAX_VIDEO_BYTES = 40 * 1024 * 1024  // 40 MB
+    const maxBytes = kind === 'video' ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES
+    const maxLabel = kind === 'video' ? '40 MB' : '8 MB'
+    const oversized = list.find((f) => f.size > maxBytes)
+    if (oversized) {
+      setUploadError(`Ảnh "${oversized.name}" vượt quá giới hạn ${maxLabel}. Vui lòng chọn file nhỏ hơn.`)
+      setBusy('')
+      return
+    }
+
     try {
       if (kind === 'image') {
         const url = await uploadMedia(list[0], { folder: 'locations' })
@@ -210,8 +224,9 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
         }
         patch(key, [...(form[key] || []), ...urls])
       }
+      setUploadError('')
     } catch (e) {
-      setError(e.message || 'Không tải được file lên server.')
+      setUploadError(e.message || 'Không tải được file lên server.')
     } finally {
       setBusy('')
     }
@@ -243,7 +258,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-          {error && <p className="mb-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">{error}</p>}
+          {error && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>}
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Tên địa điểm" className="md:col-span-2"><input className={inputClass} value={form.name} onChange={(e) => patch('name', e.target.value)} required /></Field>
             <Field label="Danh mục"><select className={inputClass} value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value, group: '', subgroup: '', keywords: '' }))}>{liveCats.filter((item) => !allowedCategories.length || allowedCategories.includes(item.key) || item.key === form.category).map((item) => <option key={item.key} value={item.key}>{item.emoji} {item.label}</option>)}</select></Field>
@@ -285,10 +300,13 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
 
           <MediaManager title="Thư viện nhiều ảnh" hint="Có thể chọn nhiều ảnh cùng lúc." icon={ImagePlus} items={form.gallery} onFiles={(files) => saveFiles(files, 'gallery')} accept="image/*" busy={busy === 'gallery'} onChange={(items) => patch('gallery', items)} addUrl={addUrl} fieldKey="gallery" />
           <MediaManager title="Ảnh toàn cảnh 360°" hint="Nên dùng ảnh equirectangular 2:1. Trình xem hỗ trợ kéo ngang, dọc và zoom." icon={ImagePlus} items={form.panoramas} onFiles={(files) => saveFiles(files, 'panorama')} accept="image/*" busy={busy === 'panorama'} onChange={(items) => patch('panoramas', items)} addUrl={addUrl} fieldKey="panoramas" />
-          <MediaManager title="Video ngắn" hint="Hỗ trợ MP4/WebM/Ogg; giới hạn 40 MB mỗi video." icon={Video} items={form.videos} onFiles={(files) => saveFiles(files, 'video')} accept="video/mp4,video/webm,video/ogg" busy={busy === 'video'} onChange={(items) => patch('videos', items)} addUrl={addUrl} fieldKey="videos" kind="video" />
+          <MediaManager title="Video ngắn" hint="Hỗ trợ upload MP4/WebM/Ogg (tối đa 40 MB) hoặc dán link YouTube." icon={Video} items={form.videos} onFiles={(files) => saveFiles(files, 'video')} accept="video/mp4,video/webm,video/ogg" busy={busy === 'video'} onChange={(items) => patch('videos', items)} addUrl={addUrl} fieldKey="videos" kind="video" />
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-blue-100 bg-white px-4 py-3 sm:px-6">
+          {uploadError && (
+            <p className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">{uploadError}</p>
+          )}
           {location && onDelete ? <button type="button" onClick={() => onDelete(location)} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-black text-blue-700 hover:bg-blue-50"><Trash2 size={17} />Xóa địa điểm</button> : <span />}
           <div className="ml-auto flex gap-2"><button type="button" onClick={onClose} className="rounded-xl border border-blue-100 px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50">Hủy</button><button type="submit" disabled={Boolean(busy)} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700 disabled:opacity-50"><Save size={17} />Lưu thay đổi</button></div>
         </div>

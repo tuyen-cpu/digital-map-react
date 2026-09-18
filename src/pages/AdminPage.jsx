@@ -230,6 +230,10 @@ export default function AdminPage({ mode = 'admin' }) {
     if (!file) return
     setSlideBusy(index)
     try {
+      if (file.size > 8 * 1024 * 1024) {
+        showNotice(`Ảnh "${file.name}" vượt quá giới hạn 8 MB. Vui lòng chọn file nhỏ hơn.`, 'error')
+        return
+      }
       const url = await uploadMedia(file, { folder: 'slides' })
       updateSlide(index, { image: url })
       showNotice('Đã cập nhật ảnh slide.', 'success')
