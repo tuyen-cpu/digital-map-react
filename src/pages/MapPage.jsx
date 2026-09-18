@@ -165,8 +165,8 @@ export default function MapPage() {
   const routeActive = Boolean(routeState.route || routeState.loading || routeState.destination)
 
   return (
-    <main className={`relative grid h-[calc(100dvh-5rem)] min-h-[560px] grid-cols-1 overflow-hidden bg-blue-50 md:min-h-[620px] md:grid-cols-[390px_1fr] md:grid-rows-1 xl:grid-cols-[430px_1fr] ${routeActive ? 'grid-rows-1' : 'grid-rows-[43%_57%]'}`}>
-      <div className={routeActive ? 'hidden min-h-0 md:flex md:h-full' : 'flex min-h-0 h-full'}>
+    <main className={`relative grid min-h-[560px] grid-cols-1 bg-blue-50 md:h-[calc(100dvh-5rem)] md:min-h-[620px] md:grid-cols-[390px_1fr] md:grid-rows-1 md:overflow-hidden xl:grid-cols-[430px_1fr] ${routeActive ? 'grid-rows-1' : 'grid-rows-[auto_auto]'}`}>
+      <div className={routeActive ? 'hidden min-h-0 md:flex md:h-full' : 'flex min-h-0 h-auto'}>
       <Sidebar
         search={search}
         onSearchChange={(value) => { setSearch(value); setRegionOnly(false) }}
@@ -184,7 +184,7 @@ export default function MapPage() {
         mappableCount={mappableCount}
       />
       </div>
-      <div className="relative min-h-0">
+      <div className="relative min-h-0 overflow-hidden">
         <MapView
           locations={filteredLocations}
           selectedLocation={selectedLocation}

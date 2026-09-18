@@ -1,4 +1,5 @@
-import { ChevronDown, LocateFixed, RefreshCcw, Search, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, ChevronUp, LocateFixed, RefreshCcw, Search, SlidersHorizontal } from 'lucide-react'
+import { useState } from 'react'
 import { useCategories } from '../hooks/useCategories'
 import LocationCard from './LocationCard'
 
@@ -7,8 +8,9 @@ export default function Sidebar({
   onReset, onShowAll, onLocate, onShowInBounds, onOpenDetails, totalCount, mappableCount, compactMobile = false
 }) {
   const { categories } = useCategories()
+  const [resultsExpanded, setResultsExpanded] = useState(true)
   return (
-    <aside className={`flex min-h-0 h-full w-full flex-col bg-slate-50 ${compactMobile ? '' : 'border-r border-slate-200'}`}>
+    <aside className={`flex min-h-0 h-auto w-full flex-col bg-slate-50 md:h-full ${compactMobile ? '' : 'border-r border-slate-200'}`}>
       <div className="border-b border-slate-200 bg-white p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -34,12 +36,15 @@ export default function Sidebar({
           <button type="button" onClick={onShowInBounds} className="rounded-xl bg-brand-700 px-3 py-2 text-xs font-bold text-white hover:bg-brand-800">Dữ liệu vùng này</button>
           <button type="button" onClick={onReset} className="col-span-2 inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"><RefreshCcw size={13} />Làm mới</button>
         </div>
-        <p className="mt-3 text-xs text-slate-500"><strong className="text-slate-800">{locations.length}</strong> kết quả · {mappableCount}/{totalCount} địa điểm có tọa độ số</p>
+        <button type="button" onClick={() => setResultsExpanded((value) => !value)} className="mt-3 flex w-full items-center justify-between gap-3 text-left text-xs text-slate-500 md:pointer-events-none">
+          <span><strong className="text-slate-800">{locations.length}</strong> kết quả · {mappableCount}/{totalCount} địa điểm có tọa độ số</span>
+          <span className="shrink-0 md:hidden" aria-hidden="true">{resultsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
+        </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+      <div className={`${resultsExpanded ? 'flex' : 'hidden'} min-h-0 flex-none overflow-visible p-3 md:flex md:flex-1 md:overflow-y-auto`}>
         {locations.length ? (
-          <div className="space-y-3">
+          <div className="w-full space-y-3">
             {locations.map((location) => <LocationCard key={location.id} location={location} selected={selectedLocation?.id === location.id} onSelect={onSelectLocation} onOpenDetails={onOpenDetails} compact />)}
           </div>
         ) : (

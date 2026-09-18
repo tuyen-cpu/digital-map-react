@@ -112,7 +112,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
   const effectiveOrigin = followUser && userPosition ? userPosition : routeOrigin
 
   return (
-    <div className="relative h-full min-h-[55vh] w-full overflow-hidden bg-blue-100">
+    <div className="relative h-[55vh] min-h-[360px] w-full overflow-hidden bg-blue-100 md:h-full md:min-h-0">
       <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} zoomControl={false} className="h-full w-full" preferCanvas>
         <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {boundaryState.data && <GeoJSON key={boundaryState.isFallback ? 'fallback-boundary' : 'full-boundary'} data={boundaryState.data} style={{ color: '#2563eb', weight: 3, fillColor: '#60a5fa', fillOpacity: 0.07, dashArray: boundaryState.isFallback ? '8 8' : undefined }} />}
