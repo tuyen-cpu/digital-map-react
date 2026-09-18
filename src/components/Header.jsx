@@ -77,7 +77,6 @@ export default function Header() {
     markReviewNotificationsRead
   } = useAppState()
   const location = useLocation()
-  const mapMode = location.pathname === '/ban-do-du-lich'
   const canManage = ['admin', 'manager'].includes(session?.role)
   const managementPath = session?.role === 'admin' ? '/admin' : '/quan-ly'
   const managementLabel = session?.role === 'admin' ? 'Quản trị' : 'Khu vực quản lý'
@@ -177,10 +176,10 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-[1000] border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
-        <div className={`flex h-20 items-center gap-3 sm:gap-4 ${mapMode ? 'w-full px-2 sm:px-3 lg:px-4' : 'mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8'}`}>
-          <Link to="/" className={`flex min-w-0 items-center ${mapMode ? 'gap-3.5' : 'gap-3'}`} onClick={() => setOpen(false)}>
-            <img src="/logo-binh-dinh.png" alt="Logo Bình Định" className={`${mapMode ? 'h-[62px] w-[62px] sm:h-[74px] sm:w-[74px]' : 'h-14 w-14'} shrink-0 rounded-full object-cover shadow-card ring-2 ring-sky-300/80`} />
-            <div className="min-w-0"><p className={`truncate font-black tracking-wide text-brand-800 ${mapMode ? 'text-lg sm:text-[23px]' : 'text-lg sm:text-xl'}`}>BÌNH ĐỊNH</p><p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs sm:tracking-[0.16em]">Bản đồ du lịch số</p></div>
+        <div className="mx-auto flex h-20 w-full max-w-[1600px] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex min-w-0 items-center gap-3" onClick={() => setOpen(false)}>
+            <img src="/logo-binh-dinh.png" alt="Logo Bình Định" className="h-14 w-14 shrink-0 rounded-full object-cover shadow-card ring-2 ring-sky-300/80" />
+            <div className="min-w-0"><p className="truncate text-lg font-black tracking-wide text-brand-800 sm:text-xl">BÌNH ĐỊNH</p><p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs sm:tracking-[0.16em]">Bản đồ du lịch số</p></div>
           </Link>
 
           <nav className="ml-auto hidden items-center gap-1 lg:flex">
