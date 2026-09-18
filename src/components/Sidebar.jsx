@@ -8,9 +8,14 @@ export default function Sidebar({
   onReset, onShowAll, onLocate, onShowInBounds, onOpenDetails, totalCount, mappableCount, compactMobile = false
 }) {
   const { categories } = useCategories()
-  const [resultsExpanded, setResultsExpanded] = useState(true)
+  const [listOpen, setListOpen] = useState(true)
+
   return (
-    <aside className={`flex min-h-0 h-auto w-full flex-col bg-slate-50 md:h-full ${compactMobile ? '' : 'border-r border-slate-200'}`}>
+    <aside
+      className={`grid w-full overflow-hidden bg-slate-50 ${compactMobile ? '' : 'border-r border-slate-200'}`}
+      style={{ gridTemplateRows: listOpen ? 'auto 1fr' : 'auto 0fr', transition: 'grid-template-rows 0.25s ease' }}
+    >
+      {/* Header: search + filters — luôn hiển thị */}
       <div className="border-b border-slate-200 bg-white p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -36,20 +41,39 @@ export default function Sidebar({
           <button type="button" onClick={onShowInBounds} className="rounded-xl bg-brand-700 px-3 py-2 text-xs font-bold text-white hover:bg-brand-800">Dữ liệu vùng này</button>
           <button type="button" onClick={onReset} className="col-span-2 inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"><RefreshCcw size={13} />Làm mới</button>
         </div>
-        <button type="button" onClick={() => setResultsExpanded((value) => !value)} className="mt-3 flex w-full items-center justify-between gap-3 text-left text-xs text-slate-500 md:pointer-events-none">
-          <span><strong className="text-slate-800">{locations.length}</strong> kết quả · {mappableCount}/{totalCount} địa điểm có tọa độ số</span>
-          <span className="shrink-0 md:hidden" aria-hidden="true">{resultsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
+        {/* Toggle bar — chỉ hiện trên mobile, desktop luôn mở */}
+        <button
+          type="button"
+          onClick={() => setListOpen((v) => !v)}
+          className="mt-3 flex w-full items-center justify-between gap-2 text-xs text-slate-500 md:pointer-events-none md:cursor-default"
+        >
+          <span><strong className="text-slate-800">{locations.length}</strong> kết quả · {mappableCount}/{totalCount} có tọa độ</span>
+          <span className="md:hidden">{listOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
         </button>
       </div>
 
-      <div className={`${resultsExpanded ? 'flex' : 'hidden'} min-h-0 flex-none overflow-visible p-3 md:flex md:flex-1 md:overflow-y-auto`}>
+      {/* List — co/xổ theo gridTemplateRows, luôn mở trên desktop */}
+      <div className="min-h-0 overflow-hidden md:overflow-y-auto">
+        <div className="overflow-y-auto p-3" style={{ height: '100%' }}>
         {locations.length ? (
-          <div className="w-full space-y-3">
-            {locations.map((location) => <LocationCard key={location.id} location={location} selected={selectedLocation?.id === location.id} onSelect={onSelectLocation} onOpenDetails={onOpenDetails} compact />)}
+          <div className="space-y-3">
+            {locations.map((location) => (
+              <LocationCard
+                key={location.id}
+                location={location}
+                selected={selectedLocation?.id === location.id}
+                onSelect={onSelectLocation}
+                onOpenDetails={onOpenDetails}
+                compact
+              />
+            ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-7 text-center text-sm text-slate-500">Không có địa điểm phù hợp với bộ lọc hiện tại.</div>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-7 text-center text-sm text-slate-500">
+            Không có địa điểm phù hợp với bộ lọc hiện tại.
+          </div>
         )}
+        </div>
       </div>
     </aside>
   )

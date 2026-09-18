@@ -5,12 +5,13 @@ import Footer from '../components/Footer'
 import LocationCard from '../components/LocationCard'
 import MediaImage from '../components/MediaImage'
 import { useAppState } from '../context/AppStateContext'
-import { CATEGORIES } from '../utils/categories'
+import { useCategories } from '../hooks/useCategories'
 import { hasCoordinates } from '../utils/format'
 
 export default function HomePage() {
   const navigate = useNavigate()
   const { locations, siteSettings, trackEvent } = useAppState()
+  const { categories: CATEGORIES } = useCategories()
   const slides = siteSettings?.heroSlides?.filter((item) => item.image) || []
   const [activeSlide, setActiveSlide] = useState(0)
   const featured = useMemo(() => locations.filter(hasCoordinates).slice(0, 6), [locations])
