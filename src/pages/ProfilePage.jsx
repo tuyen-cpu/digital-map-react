@@ -1,5 +1,5 @@
 import { Bell, CalendarClock, Camera, CheckCircle2, Clock3, KeyRound, LoaderCircle, MapPin, Navigation, Save, Search, Trash2, UserRound } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import MediaImage from '../components/MediaImage'
 import VisitedMap from '../components/VisitedMap'
@@ -33,10 +33,19 @@ export default function ProfilePage() {
   const [reminderForm, setReminderForm] = useState({ locationId: '', scheduledAt: localInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000)), note: '' })
   const [reminderQuery, setReminderQuery] = useState('')
   const [reminderSearchOpen, setReminderSearchOpen] = useState(false)
+  const reminderSearchRef = useRef(null)
 
   useEffect(() => {
     if (['user', 'manager'].includes(session?.role)) setForm({ displayName: session.displayName || '', phone: formatVietnamPhone(session.phone || ''), avatar: session.avatar || '' })
   }, [session?.avatar, session?.displayName, session?.phone, session?.role])
+
+  useEffect(() => {
+    const handleOutsidePointerDown = (event) => {
+      if (!reminderSearchRef.current?.contains(event.target)) setReminderSearchOpen(false)
+    }
+    document.addEventListener('pointerdown', handleOutsidePointerDown)
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown)
+  }, [])
 
   const history = useMemo(() => [...currentTravelHistory].sort((a, b) => String(b.lastActivityAt || '').localeCompare(String(a.lastActivityAt || ''))), [currentTravelHistory])
   const locationById = useMemo(() => new Map(locations.map((item) => [item.id, item])), [locations])
@@ -151,7 +160,7 @@ export default function ProfilePage() {
             <section className="rounded-3xl border border-blue-100 bg-white p-5 shadow-card sm:p-6">
               <div className="flex items-center gap-2"><Bell size={20} className="text-brand-600" /><div><p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Lịch nhắc</p><h2 className="mt-1 text-xl font-black text-blue-950">Hẹn thời gian đi địa điểm</h2></div></div>
               <form onSubmit={createReminder} className="mt-4 grid gap-3 md:grid-cols-2">
-                <label className="relative block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Tìm địa điểm cần đi</span><div className="relative mt-2"><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-300" /><input value={reminderQuery} onFocus={() => setReminderSearchOpen(true)} onChange={(e) => { setReminderQuery(e.target.value); setReminderForm((current) => ({ ...current, locationId: '' })); setReminderSearchOpen(true) }} placeholder="Nhập tên địa điểm, địa chỉ..." autoComplete="off" className="w-full rounded-xl border border-blue-100 bg-white py-3 pl-10 pr-3 text-blue-950 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" /></div>{selectedReminderLocation && <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs font-bold text-brand-700">Đã chọn: {selectedReminderLocation.name}</p>}{reminderSearchOpen && <div className="absolute inset-x-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-xl border border-blue-100 bg-white p-1 shadow-2xl">{reminderCandidates.map((location) => <button key={location.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setReminderForm((current) => ({ ...current, locationId: location.id })); setReminderQuery(location.name); setReminderSearchOpen(false) }} className="flex w-full items-start gap-2 rounded-lg px-3 py-2.5 text-left hover:bg-blue-50"><MapPin size={15} className="mt-0.5 shrink-0 text-brand-600" /><span className="min-w-0"><span className="block truncate text-sm font-black text-blue-950">{location.name}</span><span className="mt-0.5 block line-clamp-1 text-[11px] text-blue-500">{location.address || location.group || 'Phường Bình Định'}</span></span></button>)}{!reminderCandidates.length && <p className="px-3 py-3 text-xs text-blue-400">Không tìm thấy địa điểm phù hợp.</p>}</div>}</label>
+                <label ref={reminderSearchRef} className="relative block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Tìm địa điểm cần đi</span><div className="relative mt-2"><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-300" /><input value={reminderQuery} onFocus={() => setReminderSearchOpen(true)} onChange={(e) => { setReminderQuery(e.target.value); setReminderForm((current) => ({ ...current, locationId: '' })); setReminderSearchOpen(true) }} placeholder="Nhập tên địa điểm, địa chỉ..." autoComplete="off" className="w-full rounded-xl border border-blue-100 bg-white py-3 pl-10 pr-3 text-blue-950 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" /></div>{selectedReminderLocation && <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs font-bold text-brand-700">Đã chọn: {selectedReminderLocation.name}</p>}{reminderSearchOpen && <div className="absolute inset-x-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-xl border border-blue-100 bg-white p-1 shadow-2xl">{reminderCandidates.map((location) => <button key={location.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setReminderForm((current) => ({ ...current, locationId: location.id })); setReminderQuery(location.name); setReminderSearchOpen(false) }} className="flex w-full items-start gap-2 rounded-lg px-3 py-2.5 text-left hover:bg-blue-50"><MapPin size={15} className="mt-0.5 shrink-0 text-brand-600" /><span className="min-w-0"><span className="block truncate text-sm font-black text-blue-950">{location.name}</span><span className="mt-0.5 block line-clamp-1 text-[11px] text-blue-500">{location.address || location.group || 'Phường Bình Định'}</span></span></button>)}{!reminderCandidates.length && <p className="px-3 py-3 text-xs text-blue-400">Không tìm thấy địa điểm phù hợp.</p>}</div>}</label>
                 <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Ngày giờ nhắc</span><input required type="datetime-local" value={reminderForm.scheduledAt} onChange={(e) => setReminderForm({ ...reminderForm, scheduledAt: e.target.value })} className={inputClass} /></label>
                 <label className="block md:col-span-2"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Ghi chú</span><input value={reminderForm.note} onChange={(e) => setReminderForm({ ...reminderForm, note: e.target.value })} placeholder="Ví dụ: đi cùng gia đình, xuất phát lúc 7 giờ..." className={inputClass} /></label>
                 <button disabled={!reminderForm.locationId} type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50 md:col-span-2"><CalendarClock size={17} />Tạo lịch nhắc</button>
