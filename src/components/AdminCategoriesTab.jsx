@@ -1,13 +1,61 @@
 /**
  * AdminCategoriesTab — Quản lý danh mục địa điểm (CRUD từ DB)
  */
-import { ChevronDown, ChevronUp, Layers, Plus, Save, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { ChevronDown, ChevronUp, Layers, Plus, Save, Smile, Trash2, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppState } from '../context/AppStateContext'
 
 const inputClass = 'mt-1.5 w-full rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm text-blue-950 outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50'
 
 const EMPTY_FORM = { key: '', label: '', shortLabel: '', emoji: '📍', description: '', marker: '#1d4ed8', order: 99, suggestedGroups: '', suggestedSubgroups: '', suggestedKeywords: '' }
+const CATEGORY_EMOJIS = [
+  '📍', '🗺️', '🧭', '🌐', '🏖️', '🏝️', '🏜️', '🏕️', '⛺', '🏞️', '🌄', '🌅', '🌇', '🌉',
+  '⛰️', '🌋', '🗻', '🏔️', '🌊', '💧', '🏞️', '🌲', '🌳', '🌴', '🌵', '🌺', '🌸', '🌼',
+  '🌻', '🍀', '🌿', '🍃', '🪴', '🐚', '🦋', '🐠', '🐬', '🐢', '🦜', '🐘', '🦁', '🐒',
+  '🏛️', '🏰', '🏯', '🕌', '🛕', '⛪', '🕍', '🗿', '⛩️', '🛖', '🏠', '🏡', '🏢', '🗼',
+  '🗽', '⛲', '🎡', '🎢', '🎠', '🏟️', '🎪', '🎭', '🎨', '🖼️', '🎬', '🎤', '🎶', '🎼',
+  '🏄', '🏊', '🚣', '🚤', '⛵', '🛶', '🚲', '🛵', '🏍️', '🚗', '🚕', '🚌', '🚆', '🚉',
+  '✈️', '🛫', '🛬', '🚁', '🚡', '🚠', '🛣️', '🚏', '🅿️', '🧳', '🎒', '👣', '🥾', '🧗',
+  '🏨', '🏩', '🏢', '🛏️', '🛎️', '🛁', '🍜', '🍲', '🍛', '🍣', '🍱', '🍔', '🍕', '🌮',
+  '🍗', '🍖', '🥘', '🥗', '🍤', '🦐', '🦀', '🐟', '🍉', '🥭', '🍍', '🥥', '🍹', '🍸',
+  '☕', '🧋', '🍵', '🍰', '🧁', '🍩', '🍪', '🍽️', '🥢', '🛍️', '🛒', '🎁', '💎', '📸',
+  '📷', '🎥', '🔭', '🎯', '⭐', '🌟', '❤️', '👍', '✅', '🔔', 'ℹ️', '💡', '🔥', '📅'
+]
+
+function EmojiPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const pickerRef = useRef(null)
+
+  useEffect(() => {
+    const handleOutsidePointerDown = (event) => {
+      if (!pickerRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', handleOutsidePointerDown)
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown)
+  }, [])
+
+  return (
+    <div ref={pickerRef} className="relative mt-1.5">
+      <div className="flex gap-2">
+        <input value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} mt-0`} placeholder="🎯" maxLength={4} />
+        <button type="button" onClick={() => setOpen((current) => !current)} aria-label="Chọn emoji" aria-expanded={open}
+          className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl border border-blue-100 bg-white text-brand-600 hover:bg-blue-50">
+          <Smile size={19} />
+        </button>
+      </div>
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+6px)] z-30 grid max-h-64 w-[min(280px,calc(100vw-3rem))] grid-cols-6 gap-1 overflow-y-auto rounded-xl border border-blue-100 bg-white p-2 shadow-2xl">
+          {CATEGORY_EMOJIS.map((emoji) => (
+            <button key={emoji} type="button" onClick={() => { onChange(emoji); setOpen(false) }} aria-label={`Chọn ${emoji}`}
+              className="grid aspect-square place-items-center rounded-lg text-xl hover:bg-blue-50">
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function AdminCategoriesTab({ locations = [], setNotice }) {
   const { categories, addCategory, updateCategory, deleteCategory, refreshCategories } = useAppState()
@@ -157,7 +205,7 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
             </label>
             <label className="block">
               <span className="text-xs font-black uppercase tracking-wide text-blue-600">Emoji</span>
-              <input value={newForm.emoji} onChange={(e) => setNewForm({ ...newForm, emoji: e.target.value })} className={inputClass} placeholder="🎯" maxLength={4} />
+              <EmojiPicker value={newForm.emoji} onChange={(emoji) => setNewForm({ ...newForm, emoji })} />
             </label>
             <label className="block">
               <span className="text-xs font-black uppercase tracking-wide text-blue-600">Màu marker</span>
@@ -241,7 +289,7 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <label className="block">
                 <span className="text-xs font-black uppercase tracking-wide text-blue-600">Emoji</span>
-                <input value={draft.emoji || ''} onChange={(e) => setDraft(expanded, 'emoji', e.target.value)} className={inputClass} maxLength={4} />
+                <EmojiPicker value={draft.emoji || ''} onChange={(emoji) => setDraft(expanded, 'emoji', emoji)} />
               </label>
               <label className="block">
                 <span className="text-xs font-black uppercase tracking-wide text-blue-600">Tên đầy đủ</span>
