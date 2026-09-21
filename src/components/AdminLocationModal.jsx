@@ -142,6 +142,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
   const { categories: liveCats, getCategory: getLiveCat } = useCategories()
   const [form, setForm] = useState(fromLocation(location))
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [uploadError, setUploadError] = useState('')
   const [busy, setBusy] = useState('')
   const [showPicker, setShowPicker] = useState(false)
@@ -152,6 +153,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
       if (!location && allowedCategories.length && !allowedCategories.includes(next.category)) next.category = allowedCategories[0]
       setForm(next)
       setError('')
+      setFieldErrors({})
       setUploadError('')
       setBusy('')
       setShowPicker(false)
@@ -178,7 +180,15 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
   if (!open) return null
   const patch = (key, value) => setForm((current) => ({ ...current, [key]: value }))
 
-  const pickCoordinate = (lat, lng) => setForm((current) => ({ ...current, lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) }))
+  const clearFieldError = (key) => {
+    if (fieldErrors[key]) setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next })
+  }
+
+  const pickCoordinate = (lat, lng) => {
+    setForm((current) => ({ ...current, lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) }))
+    clearFieldError('lat')
+    clearFieldError('lng')
+  }
 
   const useGps = async () => {
     setBusy('gps')
@@ -241,7 +251,16 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
 
   const submit = (event) => {
     event.preventDefault()
-    if (!form.name.trim()) return setError('Hãy nhập tên địa điểm.')
+    const errs = {}
+    if (!form.name.trim()) errs.name = 'Hãy nhập tên địa điểm.'
+    if (!form.address.trim()) errs.address = 'Hãy nhập địa chỉ.'
+    if (form.lat === '' || !Number.isFinite(parseFloat(form.lat))) errs.lat = 'Hãy nhập vĩ độ hợp lệ hoặc chọn trên bản đồ.'
+    if (form.lng === '' || !Number.isFinite(parseFloat(form.lng))) errs.lng = 'Hãy nhập kinh độ hợp lệ hoặc chọn trên bản đồ.'
+    if (Object.keys(errs).length) {
+      setFieldErrors(errs)
+      return
+    }
+    setFieldErrors({})
     try {
       onSave?.({ ...form, oldArea: null, plusCode: null })
     } catch (e) {
@@ -260,14 +279,26 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
           {error && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>}
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Tên địa điểm" className="md:col-span-2"><input className={inputClass} value={form.name} onChange={(e) => patch('name', e.target.value)} required /></Field>
+            <Field label="Tên địa điểm" className="md:col-span-2">
+              <input className={inputClass} value={form.name} onChange={(e) => { patch('name', e.target.value); clearFieldError('name') }} />
+              {fieldErrors.name && <p className="mt-1 text-xs font-semibold text-red-600">{fieldErrors.name}</p>}
+            </Field>
             <Field label="Danh mục"><select className={inputClass} value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value, group: '', subgroup: '', keywords: '' }))}>{liveCats.filter((item) => !allowedCategories.length || allowedCategories.includes(item.key) || item.key === form.category).map((item) => <option key={item.key} value={item.key}>{item.emoji} {item.label}</option>)}</select></Field>
             <OptionSelect label="Phân nhóm" value={form.group} onChange={(value) => patch('group', value)} options={optionSets.groups} />
             <OptionSelect label="Phân nhóm chi tiết" value={form.subgroup} onChange={(value) => patch('subgroup', value)} options={optionSets.subgroups} />
             <Field label="Giờ hoạt động"><input className={inputClass} value={form.hours || ''} onChange={(e) => patch('hours', e.target.value)} placeholder="06:00 - 22:00" /></Field>
-            <Field label="Địa chỉ" className="md:col-span-2"><textarea rows="2" className={inputClass} value={form.address} onChange={(e) => patch('address', e.target.value)} /></Field>
-            <Field label="Vĩ độ"><input inputMode="decimal" className={inputClass} value={form.lat} onChange={(e) => patch('lat', e.target.value)} placeholder="Có thể để trống và chọn trên bản đồ" /></Field>
-            <Field label="Kinh độ"><input inputMode="decimal" className={inputClass} value={form.lng} onChange={(e) => patch('lng', e.target.value)} placeholder="Có thể để trống và chọn trên bản đồ" /></Field>
+            <Field label="Địa chỉ *" className="md:col-span-2">
+              <textarea rows="2" className={inputClass} value={form.address} onChange={(e) => { patch('address', e.target.value); clearFieldError('address') }} placeholder="Nhập địa chỉ đầy đủ..." />
+              {fieldErrors.address && <p className="mt-1 text-xs font-semibold text-red-600">{fieldErrors.address}</p>}
+            </Field>
+            <Field label="Vĩ độ *">
+              <input inputMode="decimal" className={inputClass} value={form.lat} onChange={(e) => { patch('lat', e.target.value); clearFieldError('lat') }} placeholder="Ví dụ: 13.893200 — hoặc chọn trên bản đồ bên dưới" />
+              {fieldErrors.lat && <p className="mt-1 text-xs font-semibold text-red-600">{fieldErrors.lat}</p>}
+            </Field>
+            <Field label="Kinh độ *">
+              <input inputMode="decimal" className={inputClass} value={form.lng} onChange={(e) => { patch('lng', e.target.value); clearFieldError('lng') }} placeholder="Ví dụ: 109.058000 — hoặc chọn trên bản đồ bên dưới" />
+              {fieldErrors.lng && <p className="mt-1 text-xs font-semibold text-red-600">{fieldErrors.lng}</p>}
+            </Field>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <button type="button" onClick={() => setShowPicker((value) => !value)} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-sm font-black text-brand-700 hover:bg-blue-50"><MapPinned size={17} />{showPicker ? 'Ẩn bản đồ chọn vị trí' : 'Chọn vị trí trên bản đồ'}</button>
               <button type="button" onClick={useGps} disabled={busy === 'gps'} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-black text-white hover:bg-brand-700 disabled:opacity-60"><LocateFixed size={17} />{busy === 'gps' ? 'Đang lấy GPS...' : 'Lấy vị trí GPS hiện tại'}</button>

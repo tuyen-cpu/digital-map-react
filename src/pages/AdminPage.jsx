@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart3, Bell, Building2, Database, Download, Image, KeyRound, LayoutDashboard, Layers, MapPin, Navigation, Pencil, Plus, RotateCcw, Search, Star, Trash2, Upload, Users } from 'lucide-react'
+import { BarChart3, Bell, Building2, Database, Download, Image, KeyRound, LayoutDashboard, Layers, MapPin, Navigation, Pencil, Plus, RotateCcw, Search, Settings, Star, Trash2, Upload, Users } from 'lucide-react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import AuthShell from '../components/AuthShell'
 import AdminLocationModal from '../components/AdminLocationModal'
@@ -29,7 +29,7 @@ export default function AdminPage({ mode = 'admin' }) {
   const {
     session, login, logout, users, deleteUser, updateUserAccount, resetUserPassword,
     locations, addLocation, updateLocation, deleteLocation, canManageLocation, canManageCategory,
-    reviews, replyToReview, deleteReview, analyticsEvents, clearAnalytics, siteSettings, siteSettingsLoaded, updateSiteSettings,
+    reviews, replyToReview, deleteReview, analyticsEvents, clearAnalytics, siteSettings, siteSettingsLoaded, updateSiteSettings, resetSiteSettings,
     unreadReviewNotifications, markReviewNotificationsRead
   } = useAppState()
   const { categories: liveCategories, getCategory: getLiveCat } = useCategories()
@@ -90,7 +90,7 @@ export default function AdminPage({ mode = 'admin' }) {
     return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 10)
   }, [locationViews])
 
-  const allowedTabKeys = isAdmin ? ['overview', 'locations', 'reviews', 'reports', 'slides', 'users', 'categories'] : ['overview', 'locations', 'reviews', 'reports']
+  const allowedTabKeys = isAdmin ? ['overview', 'locations', 'reviews', 'reports', 'slides', 'users', 'categories', 'footer'] : ['overview', 'locations', 'reviews', 'reports']
 
   useEffect(() => {
     const requested = searchParams.get('tab')
@@ -189,12 +189,23 @@ export default function AdminPage({ mode = 'admin' }) {
   const [localSlides, setLocalSlides] = useState(null)
   const [slidesDirty, setSlidesDirty] = useState(false)
   const [slidesSaving, setSlidesSaving] = useState(false)
+
+  // Local footer state — same pattern as slides
+  const [localFooter, setLocalFooter] = useState(null)
+  const [footerDirty, setFooterDirty] = useState(false)
+  const [footerSaving, setFooterSaving] = useState(false)
   const MAX_SLIDES = 5
 
   // Khởi tạo localSlides khi siteSettings load xong lần đầu
   useEffect(() => {
     if (siteSettingsLoaded && localSlides === null) {
       setLocalSlides(siteSettings.heroSlides)
+    }
+  }, [siteSettingsLoaded])
+
+  useEffect(() => {
+    if (siteSettingsLoaded && localFooter === null) {
+      setLocalFooter(siteSettings?.footer ?? {})
     }
   }, [siteSettingsLoaded])
 
@@ -244,6 +255,39 @@ export default function AdminPage({ mode = 'admin' }) {
     }
   }
 
+  const updateFooterField = (key, value) => {
+    setLocalFooter((prev) => ({ ...prev, [key]: value }))
+    setFooterDirty(true)
+  }
+
+  const saveFooter = async () => {
+    setFooterSaving(true)
+    try {
+      await updateSiteSettings({ footer: localFooter })
+      setFooterDirty(false)
+      showNotice('Đã lưu cài đặt footer.', 'success')
+    } catch (e) {
+      showNotice(e?.response?.data?.detail || e.message || 'Lỗi cập nhật footer.', 'error')
+    } finally {
+      setFooterSaving(false)
+    }
+  }
+
+  const resetFooter = async () => {
+    if (!window.confirm('Khôi phục footer về mặc định?')) return
+    setFooterSaving(true)
+    try {
+      await resetSiteSettings()
+      setLocalFooter(null)  // triggers re-init from new siteSettings
+      setFooterDirty(false)
+      showNotice('Đã khôi phục footer về mặc định.', 'success')
+    } catch (e) {
+      showNotice(e?.response?.data?.detail || e.message || 'Lỗi khôi phục.', 'error')
+    } finally {
+      setFooterSaving(false)
+    }
+  }
+
   const tabs = [
     { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
     { key: 'locations', label: 'Địa điểm', icon: MapPin },
@@ -252,6 +296,7 @@ export default function AdminPage({ mode = 'admin' }) {
     ...(isAdmin ? [
       { key: 'categories', label: 'Danh mục', icon: Layers },
       { key: 'slides', label: 'Trang chủ', icon: Image },
+      { key: 'footer', label: 'Cài đặt Footer', icon: Settings },
       { key: 'users', label: 'Tài khoản & phân quyền', icon: Users }
     ] : [])
   ]
@@ -260,7 +305,7 @@ export default function AdminPage({ mode = 'admin' }) {
     <main className="min-h-[calc(100dvh-5rem)] bg-blue-50/45 px-3 py-6 sm:px-5 sm:py-8 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div><p className="text-xs font-black uppercase tracking-[0.18em] text-brand-700">{isAdmin ? 'Quản trị' : 'Khu vực quản lý'}</p><h1 className="mt-2 text-2xl font-black text-blue-950 sm:text-3xl">{isAdmin ? 'Quản lý nội dung website' : 'Quản lý phạm vi được cấp'}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-blue-700/70">{isAdmin ? 'Địa điểm, media, tài khoản, phân quyền, đánh giá, slideshow, thống kê và báo cáo nằm trong cùng trang quản trị.' : 'Bạn chỉ có thể thêm/sửa/xóa các địa điểm thuộc danh mục hoặc nhóm đã được quản trị viên cấp quyền.'}</p></div>
+          <div><p className="text-xs font-black uppercase tracking-[0.18em] text-brand-700">{isAdmin ? 'Quản trị' : 'Khu vực quản lý'}</p><h1 className="mt-2 text-2xl font-black text-blue-950 sm:text-3xl">{isAdmin ? 'Quản lý nội dung website' : 'Quản lý phạm vi được cấp'}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-blue-700/70">{isAdmin ? '' : 'Bạn chỉ có thể thêm/sửa/xóa các địa điểm thuộc danh mục hoặc nhóm đã được quản trị viên cấp quyền.'}</p></div>
           <button type="button" onClick={logout} className="rounded-xl border border-blue-100 bg-white px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50">{isAdmin ? 'Đăng xuất quản trị' : 'Đăng xuất quản lý'}</button>
         </div>
 
@@ -336,8 +381,127 @@ export default function AdminPage({ mode = 'admin' }) {
           <div className="mt-5 grid gap-4 lg:grid-cols-2">{slides.map((slide, index) => <div key={slide.id || index} className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/35"><div className="relative aspect-[16/7] bg-blue-100">{slide.image ? <MediaImage src={slide.image} alt={slide.title || ''} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-blue-300"><Image size={30} /></div>}<button type="button" onClick={() => removeSlide(index)} className="absolute right-2 top-2 rounded-lg bg-white/90 p-2 text-blue-700 shadow hover:bg-white" title="Xóa slide"><Trash2 size={16} /></button></div><div className="space-y-3 p-4"><label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-black text-brand-700 hover:bg-blue-50"><Upload size={15} />{slideBusy === index ? 'Đang lưu...' : 'Chọn ảnh từ máy'}<input type="file" accept="image/*" className="hidden" disabled={slideBusy >= 0} onChange={(e) => uploadSlide(index, e.target.files?.[0])} /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">URL / tham chiếu ảnh</span><input value={slide.image || ''} onChange={(e) => updateSlide(index, { image: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-xs outline-none focus:border-brand-300" /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Tiêu đề</span><input value={slide.title || ''} onChange={(e) => updateSlide(index, { title: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-sm outline-none focus:border-brand-300" /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Mô tả</span><input value={slide.caption || ''} onChange={(e) => updateSlide(index, { caption: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-sm outline-none focus:border-brand-300" /></label></div></div>)}</div>
         </section>}
 
-        {isAdmin && tab === 'users' && <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-4 shadow-card sm:p-6">
-          <div><p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Tài khoản</p><h2 className="mt-1 text-2xl font-black text-blue-950">Người dùng & phân quyền</h2><p className="mt-1 text-sm text-blue-600/70">Xem tài khoản đã đăng ký, sửa thông tin, cấp quyền theo danh mục/nhóm và reset mật khẩu bắt buộc đổi lại.</p></div>
+        {isAdmin && tab === 'footer' && (
+          <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-4 shadow-card sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Cài đặt</p>
+                <h2 className="mt-1 text-2xl font-black text-blue-950">Nội dung Footer</h2>
+                <p className="mt-1 text-sm text-blue-600/70">Chỉnh sửa thông tin hiển thị ở phần cuối của mọi trang.</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={resetFooter}
+                  disabled={footerSaving}
+                  className="inline-flex items-center gap-2 rounded-xl border border-blue-200 px-4 py-2.5 text-sm font-black text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                >
+                  <RotateCcw size={15} />Khôi phục mặc định
+                </button>
+                {footerDirty && (
+                  <button
+                    type="button"
+                    onClick={saveFooter}
+                    disabled={footerSaving}
+                    className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-black text-white hover:bg-green-700 disabled:opacity-60"
+                  >
+                    {footerSaving ? 'Đang lưu...' : 'Lưu'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {localFooter !== null && (
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                <label className="block">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Tên tổ chức</span>
+                  <input
+                    value={localFooter.orgName ?? ''}
+                    onChange={(e) => updateFooterField('orgName', e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Điện thoại</span>
+                  <input
+                    value={localFooter.phone ?? ''}
+                    onChange={(e) => updateFooterField('phone', e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
+                  />
+                </label>
+
+                <label className="block md:col-span-2">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Mô tả ngắn</span>
+                  <textarea
+                    value={localFooter.description ?? ''}
+                    onChange={(e) => updateFooterField('description', e.target.value)}
+                    rows={3}
+                    className="mt-1.5 w-full resize-none rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
+                  />
+                </label>
+
+                <label className="block md:col-span-2">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Địa chỉ</span>
+                  <input
+                    value={localFooter.address ?? ''}
+                    onChange={(e) => updateFooterField('address', e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Email</span>
+                  <input
+                    type="email"
+                    value={localFooter.email ?? ''}
+                    onChange={(e) => updateFooterField('email', e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Giờ làm việc</span>
+                  <input
+                    value={localFooter.workingHours ?? ''}
+                    onChange={(e) => updateFooterField('workingHours', e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
+                  />
+                </label>
+
+                <label className="block md:col-span-2">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Dòng copyright</span>
+                  <input
+                    value={localFooter.copyright ?? ''}
+                    onChange={(e) => updateFooterField('copyright', e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
+                  />
+                </label>
+
+                <label className="block md:col-span-2">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">URL logo tùy chỉnh</span>
+                  <div className="mt-1.5 flex items-center gap-3">
+                    <input
+                      value={localFooter.logoUrl ?? ''}
+                      onChange={(e) => updateFooterField('logoUrl', e.target.value)}
+                      placeholder="https://... (để trống dùng logo mặc định)"
+                      className="flex-1 rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
+                    />
+                    {localFooter.logoUrl && (
+                      <img
+                        src={localFooter.logoUrl}
+                        alt="Logo preview"
+                        className="h-12 w-12 rounded-full border border-blue-100 object-cover"
+                      />
+                    )}
+                  </div>
+                </label>
+              </div>
+            )}
+          </section>
+        )}
+
+        {isAdmin && tab === 'users' && <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-4 shadow-card sm:p-6">          <div><p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Tài khoản</p><h2 className="mt-1 text-2xl font-black text-blue-950">Người dùng & phân quyền</h2><p className="mt-1 text-sm text-blue-600/70">Xem tài khoản đã đăng ký, sửa thông tin, cấp quyền theo danh mục/nhóm và reset mật khẩu bắt buộc đổi lại.</p></div>
           <div className="mt-5 overflow-hidden rounded-2xl border border-blue-100"><div className="divide-y divide-blue-50">{users.map((user) => <div key={user.username} className="flex flex-wrap items-center gap-3 px-4 py-3"><MediaImage src={user.avatar} alt="" className="h-11 w-11 rounded-full bg-blue-50 object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-sm font-black text-blue-950">{user.displayName || user.username}</p>{user.role === 'manager' && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-black text-brand-700">QUẢN LÝ NHÓM</span>}{user.mustChangePassword && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">PHẢI ĐỔI MẬT KHẨU</span>}</div><p className="mt-0.5 text-xs text-blue-500">@{user.username} · {formatVietnamPhone(user.phone) || 'Chưa có SĐT'}</p>{user.role === 'manager' && <p className="mt-1 line-clamp-1 text-[11px] text-blue-400">Quyền: {[...(user.permissions?.categories || []).map(categoryLabel), ...(user.permissions?.groups || []), ...(user.permissions?.subgroups || [])].join(' · ') || 'Chưa chọn phạm vi'}</p>}</div><div className="ml-auto flex gap-1"><button type="button" onClick={() => setUserEditor({ open: true, user })} className="rounded-lg p-2 text-brand-700 hover:bg-blue-50" title="Sửa & phân quyền"><Pencil size={17} /></button><button type="button" onClick={() => { if (window.confirm(`Xóa tài khoản @${user.username}? Đánh giá, lịch sử và lịch nhắc của tài khoản cũng sẽ bị xóa.`)) { deleteUser(user.username).then(() => showNotice('Đã xóa tài khoản.', 'success')).catch(e => showNotice(e?.response?.data?.detail || e.message, 'error')) } }} className="rounded-lg p-2 text-blue-500 hover:bg-blue-50 hover:text-brand-700" title="Xóa"><Trash2 size={17} /></button></div></div>)}{!users.length && <p className="p-6 text-center text-sm text-blue-400">Chưa có tài khoản người dùng.</p>}</div></div>
         </section>}
 

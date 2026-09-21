@@ -162,7 +162,7 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Danh mục</p>
           <h2 className="mt-1 text-2xl font-black text-blue-950">Quản lý danh mục địa điểm</h2>
-          <p className="mt-1 text-sm text-blue-600/70">Thêm, sửa, xóa danh mục. Thay đổi phản ánh ngay trên toàn bộ website.</p>
+          {/* <p className="mt-1 text-sm text-blue-600/70">Thêm, sửa, xóa danh mục. Thay đổi phản ánh ngay trên toàn bộ website.</p> */}
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => { setAdding(true); setExpanded(null) }} disabled={busy}

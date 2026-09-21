@@ -517,7 +517,7 @@ export function ApiStateProvider({ children }) {
     reminders: reminders ?? [],
     currentReminders: currentReminders ?? [],
     analyticsEvents: analyticsEvents ?? [],
-    siteSettings: siteSettings ?? { heroSlides: [], heroIntervalMs: 5200 },
+    siteSettings: siteSettings ?? { heroSlides: [], heroIntervalMs: 5200, footer: {} },
     siteSettingsLoaded: siteSettings !== null,
     users: users ?? [],
     reviewNotifications: reviewNotifications ?? [],
