@@ -165,7 +165,7 @@ export default function MapPage() {
   const routeActive = Boolean(routeState.route || routeState.loading || routeState.destination)
 
   return (
-    <main className={`relative grid min-h-[560px] grid-cols-1 bg-blue-50 md:h-[calc(100dvh-5rem)] md:min-h-[620px] md:grid-cols-[390px_1fr] md:grid-rows-1 md:overflow-hidden xl:grid-cols-[430px_1fr] ${routeActive ? 'grid-rows-1' : 'grid-rows-[auto_auto]'}`}>
+    <main className={`relative grid grid-cols-1 bg-blue-50 ${routeActive ? 'h-[calc(100dvh-5rem)] min-h-0 grid-rows-1' : 'min-h-[560px] grid-rows-[auto_auto] md:h-[calc(100dvh-5rem)] md:min-h-[620px]'} md:grid-cols-[390px_1fr] md:grid-rows-1 md:overflow-hidden xl:grid-cols-[430px_1fr]`}>
       <div className={routeActive ? 'hidden min-h-0 md:flex md:h-full' : 'flex min-h-0 h-auto'}>
       <Sidebar
         search={search}

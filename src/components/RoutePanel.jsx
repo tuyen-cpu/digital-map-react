@@ -34,7 +34,7 @@ export default function RoutePanel({
   }
 
   return (
-    <div className="absolute inset-x-2 bottom-2 z-[700] flex max-h-[72dvh] flex-col overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white/97 shadow-2xl backdrop-blur sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[min(390px,calc(100%-2rem))] lg:bottom-6 lg:right-6">
+    <div className="absolute inset-x-2 bottom-0 z-[700] flex max-h-[72dvh] flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200 bg-white/97 shadow-2xl backdrop-blur sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[min(390px,calc(100%-2rem))] sm:rounded-[1.35rem] lg:bottom-6 lg:right-6">
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-brand-700">Dẫn đường</p>
