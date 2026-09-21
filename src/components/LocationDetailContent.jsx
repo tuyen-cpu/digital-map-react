@@ -1,5 +1,5 @@
 import { CheckCircle2, ExternalLink, Facebook, Globe2, Mail, MapPinned, Navigation, Phone, PlayCircle, Sparkles } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
 import { getCategory } from '../utils/categories'
@@ -30,8 +30,15 @@ function ActionLink({ href, icon: Icon, children, primary = false, onClick }) {
 }
 
 export default function LocationDetailContent({ location, onNavigate, onPanorama, showPageLink = true }) {
-  const { session, trackEvent, recordTravel } = useAppState()
+  const { session, trackEvent, recordTravel, travelHistory } = useAppState()
   const [travelNotice, setTravelNotice] = useState('')
+  const [visitLoading, setVisitLoading] = useState(false)
+
+  // Tìm entry "visited" của location này trong travelHistory
+  const visitedEntry = useMemo(() =>
+    travelHistory.find((e) => e.locationId === location?.id && (e.lastAction === 'visited' || e.visitedAt)),
+    [travelHistory, location?.id]
+  )
 
   useEffect(() => {
     if (!location?.id || !['user', 'manager'].includes(session?.role)) return
@@ -69,7 +76,43 @@ export default function LocationDetailContent({ location, onNavigate, onPanorama
             <button type="button" onClick={() => { trackEvent('panorama_open', { locationId: location.id, locationName: location.name }); onPanorama?.(location) }} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-xs font-black text-blue-800 transition hover:bg-blue-50 sm:text-sm"><Sparkles size={16} />Ảnh 360°</button>
             {website && <ActionLink href={website} icon={Globe2} onClick={() => trackEvent('contact_click', { locationId: location.id, locationName: location.name, channel: 'website' })}>Website</ActionLink>}
             {location.facebook && <ActionLink href={location.facebook} icon={Facebook} onClick={() => trackEvent('contact_click', { locationId: location.id, locationName: location.name, channel: 'facebook' })}>Facebook</ActionLink>}
-            {['user', 'manager'].includes(session?.role) && <button type="button" onClick={() => { recordTravel(location.id, 'visited'); setTravelNotice('Đã lưu địa điểm vào danh sách đã đến.') }} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-xs font-black text-blue-800 transition hover:bg-blue-50 sm:text-sm"><CheckCircle2 size={16} />Đánh dấu đã đến</button>}
+            {['user', 'manager'].includes(session?.role) && (
+              visitedEntry ? (
+                <button
+                  type="button"
+                  disabled={visitLoading}
+                  onClick={async () => {
+                    setVisitLoading(true)
+                    try {
+                      await recordTravel(location.id, 'unvisit')
+                      setTravelNotice('Đã huỷ đánh dấu.')
+                    } finally {
+                      setVisitLoading(false)
+                    }
+                  }}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2.5 text-xs font-black text-emerald-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-60 sm:text-sm"
+                >
+                  <CheckCircle2 size={16} />Huỷ đánh dấu đã đến
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={visitLoading}
+                  onClick={async () => {
+                    setVisitLoading(true)
+                    try {
+                      await recordTravel(location.id, 'visited')
+                      setTravelNotice('Đã lưu địa điểm vào danh sách đã đến.')
+                    } finally {
+                      setVisitLoading(false)
+                    }
+                  }}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-xs font-black text-blue-800 transition hover:bg-blue-50 disabled:opacity-60 sm:text-sm"
+                >
+                  <CheckCircle2 size={16} />Đánh dấu đã đến
+                </button>
+              )
+            )}
           </div>
           {travelNotice && <p className="mt-2 text-xs font-semibold text-emerald-700">{travelNotice}</p>}
 
