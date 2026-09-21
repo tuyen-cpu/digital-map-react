@@ -7,6 +7,7 @@ import { useAppState } from './context/AppStateContext'
 import AdminPage from './pages/AdminPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 import ExplorePage from './pages/ExplorePage'
+import FavoritesPage from './pages/FavoritesPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import MapPage from './pages/MapPage'
@@ -33,6 +34,7 @@ function AppRoutes() {
       <Route path="/dang-ky" element={<RegisterPage />} />
       <Route path="/doi-mat-khau" element={<ChangePasswordPage />} />
       <Route path="/tai-khoan" element={<ProfilePage />} />
+      <Route path="/yeu-thich" element={<FavoritesPage />} />
       <Route path="/admin" element={<AdminPage mode="admin" />} />
       <Route path="/quan-ly" element={<AdminPage mode="manager" />} />
       <Route path="/admin/bao-cao" element={<Navigate to="/admin" replace />} />

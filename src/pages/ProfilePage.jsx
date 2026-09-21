@@ -1,4 +1,4 @@
-import { Bell, CalendarClock, Camera, CheckCircle2, Clock3, KeyRound, LoaderCircle, MapPin, Navigation, Save, Search, Trash2, UserRound } from 'lucide-react'
+import { Bell, CalendarClock, Camera, CheckCircle2, Clock3, Heart, KeyRound, LoaderCircle, MapPin, Navigation, Save, Search, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import MediaImage from '../components/MediaImage'
@@ -23,7 +23,7 @@ function localInputValue(date) {
 export default function ProfilePage() {
   const {
     session, updateProfile, locations, currentTravelHistory, recordTravel, removeTravelHistory,
-    currentReminders, addReminder, deleteReminder, completeReminder
+    currentReminders, addReminder, deleteReminder, completeReminder, favorites
   } = useAppState()
   const [form, setForm] = useState({ displayName: '', phone: '', avatar: '' })
   const [notice, setNotice] = useState('')
@@ -148,6 +148,20 @@ export default function ProfilePage() {
               <label className="block"><span className="text-sm font-bold text-blue-950">Số điện thoại</span><input required inputMode="tel" maxLength={16} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9+ .-]/g, '') })} className={inputClass} /><span className="mt-1.5 block text-[11px] text-blue-500">{VIETNAM_PHONE_HELP}</span></label>
               <button type="submit" disabled={profileBusy} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-black text-white transition hover:bg-brand-700 disabled:cursor-wait disabled:opacity-70"><SaveIcon size={17} className={profileBusy ? 'animate-spin' : ''} />{profileBusy ? 'Đang lưu...' : 'Lưu thông tin'}</button>
               <Link to="/doi-mat-khau" className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 px-4 py-3 text-sm font-black text-brand-700 hover:bg-blue-50"><KeyRound size={17} />Đổi mật khẩu</Link>
+              {['user', 'manager'].includes(session?.role) && (
+                <Link
+                  to="/yeu-thich"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-pink-200 bg-pink-50/50 px-4 py-3 text-sm font-black text-pink-700 hover:bg-pink-100 transition"
+                >
+                  <Heart size={17} />
+                  Xem địa điểm yêu thích
+                  {favorites.length > 0 && (
+                    <span className="ml-auto rounded-full bg-pink-100 px-2 py-0.5 text-xs font-bold text-pink-700">
+                      {favorites.length}
+                    </span>
+                  )}
+                </Link>
+              )}
             </form>
           </section>
 
