@@ -34,7 +34,7 @@ export default function RoutePanel({
   }
 
   return (
-    <div className="absolute inset-x-2 bottom-2 z-[700] max-h-[72dvh] overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white/97 shadow-2xl backdrop-blur sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[min(390px,calc(100%-2rem))] lg:bottom-6 lg:right-6">
+    <div className="absolute inset-x-2 bottom-2 z-[700] flex max-h-[72dvh] flex-col overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white/97 shadow-2xl backdrop-blur sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[min(390px,calc(100%-2rem))] lg:bottom-6 lg:right-6">
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-brand-700">Dẫn đường</p>
@@ -44,7 +44,7 @@ export default function RoutePanel({
         <button type="button" onClick={onToggleExpanded} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" title="Ẩn bảng chỉ dẫn nhưng vẫn giữ lộ trình" aria-label="Ẩn bảng chỉ dẫn"><X size={17} /></button>
       </div>
 
-      <div className="max-h-[calc(72dvh-64px)] overflow-y-auto overscroll-contain">
+      <div className="route-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {loading && <div className="p-5 text-sm text-slate-600">Đang tìm tuyến đường phù hợp...</div>}
         {error && <div className="p-5 text-sm text-blue-700">{error}</div>}
         {!route && error && <div className="px-4 pb-4"><button type="button" onClick={onStop} className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 px-3 py-2.5 text-xs font-black text-blue-700 hover:bg-blue-50"><Square size={14} />Đóng lộ trình</button></div>}
@@ -69,12 +69,14 @@ export default function RoutePanel({
                 ))}
               </ol>
             </div>
-            <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 p-3 backdrop-blur">
-              <button type="button" onClick={onStop} className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 px-3 py-2.5 text-xs font-black text-blue-700 hover:bg-blue-50"><Square size={14} />Kết thúc dẫn đường</button>
-            </div>
           </>
         )}
       </div>
+      {route && (
+        <div className="shrink-0 border-t border-slate-100 bg-white/95 p-3 backdrop-blur">
+          <button type="button" onClick={onStop} className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 px-3 py-2.5 text-xs font-black leading-none text-blue-700 hover:bg-blue-50"><Square size={14} />Kết thúc dẫn đường</button>
+        </div>
+      )}
     </div>
   )
 }
