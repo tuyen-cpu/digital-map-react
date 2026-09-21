@@ -198,17 +198,17 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-wide text-blue-600">Key <span className="text-red-500">*</span></span>
+              <span className="text-xs font-black uppercase tracking-wide text-blue-600">Khoá <span className="text-red-500">*</span></span>
               <input required value={newForm.key} onChange={(e) => setNewForm({ ...newForm, key: e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') })}
                 className={inputClass} placeholder="vd: sport, shopping" />
               <span className="mt-1 block text-[11px] text-blue-400">Chỉ chữ thường, số, dấu gạch dưới</span>
             </label>
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-wide text-blue-600">Emoji</span>
+              <span className="text-xs font-black uppercase tracking-wide text-blue-600">Biểu tượng</span>
               <EmojiPicker value={newForm.emoji} onChange={(emoji) => setNewForm({ ...newForm, emoji })} />
             </label>
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-wide text-blue-600">Màu marker</span>
+              <span className="text-xs font-black uppercase tracking-wide text-blue-600">Màu đánh dấu</span>
               <div className="mt-1.5 flex items-center gap-2">
                 <input type="color" value={newForm.marker} onChange={(e) => setNewForm({ ...newForm, marker: e.target.value })} className="h-10 w-14 cursor-pointer rounded-lg border border-blue-100 p-1" />
                 <input value={newForm.marker} onChange={(e) => setNewForm({ ...newForm, marker: e.target.value })} className="flex-1 rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm font-mono outline-none focus:border-brand-300" />
@@ -288,7 +288,7 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <label className="block">
-                <span className="text-xs font-black uppercase tracking-wide text-blue-600">Emoji</span>
+                <span className="text-xs font-black uppercase tracking-wide text-blue-600">Biểu tượng</span>
                 <EmojiPicker value={draft.emoji || ''} onChange={(emoji) => setDraft(expanded, 'emoji', emoji)} />
               </label>
               <label className="block">
@@ -304,7 +304,7 @@ export default function AdminCategoriesTab({ locations = [], setNotice }) {
                 <input value={draft.description || ''} onChange={(e) => setDraft(expanded, 'description', e.target.value)} className={inputClass} />
               </label>
               <label className="block">
-                <span className="text-xs font-black uppercase tracking-wide text-blue-600">Màu marker</span>
+                <span className="text-xs font-black uppercase tracking-wide text-blue-600">Màu đánh dấu</span>
                 <div className="mt-1.5 flex items-center gap-2">
                   <input type="color" value={draft.marker || '#1d4ed8'} onChange={(e) => setDraft(expanded, 'marker', e.target.value)} className="h-10 w-14 cursor-pointer rounded-lg border border-blue-100 p-1" />
                   <input value={draft.marker || ''} onChange={(e) => setDraft(expanded, 'marker', e.target.value)} className="flex-1 rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm font-mono outline-none focus:border-brand-300" />
