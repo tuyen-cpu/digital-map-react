@@ -46,7 +46,10 @@ export default function LocationCard({ location, selected = false, onSelect, onO
           <Heart size={16} fill={favorite ? 'currentColor' : 'none'} />
         </button>
         <button type="button" onClick={() => (onOpenDetails || onSelect)?.(location)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-brand-700 hover:bg-brand-50"><Info size={14} />Chi tiết</button>
-        <Link to={`/ban-do-du-lich?routeTo=${encodeURIComponent(location.id)}`} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-bold text-brand-700 hover:bg-brand-50"><Navigation size={13} />Dẫn đường</Link>
+        {mappable
+          ? <Link to={`/ban-do-du-lich?routeTo=${encodeURIComponent(location.id)}`} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-bold text-brand-700 hover:bg-brand-50"><Navigation size={13} />Dẫn đường</Link>
+          : <button type="button" disabled title="Địa điểm này chưa có tọa độ trên bản đồ" className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-bold text-blue-300 cursor-not-allowed opacity-60"><Navigation size={13} />Dẫn đường</button>
+        }
       </div>
     </article>
   )
