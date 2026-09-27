@@ -208,7 +208,6 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
     const list = Array.from(files || [])
     if (!list.length) return
     setError('')
-    setBusy(kind)
 
     const MAX_IMAGE_BYTES = 8 * 1024 * 1024   // 8 MB
     const MAX_VIDEO_BYTES = 40 * 1024 * 1024  // 40 MB
@@ -217,28 +216,70 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
     const oversized = list.find((f) => f.size > maxBytes)
     if (oversized) {
       setUploadError(`Ảnh "${oversized.name}" vượt quá giới hạn ${maxLabel}. Vui lòng chọn file nhỏ hơn.`)
-      setBusy('')
       return
     }
 
-    try {
-      if (kind === 'image') {
-        const url = await uploadMedia(list[0], { folder: 'locations' })
-        patch('image', url)
-      } else {
-        const key = kind === 'gallery' ? 'gallery' : kind === 'panorama' ? 'panoramas' : 'videos'
-        const urls = []
-        for (const file of list) {
-          const url = await uploadMedia(file, { folder: kind === 'video' ? 'videos' : kind === 'panorama' ? 'panoramas' : 'gallery' })
-          urls.push({ url, name: file.name, alt: kind === 'video' ? '' : `${form.name || 'Địa điểm'} - ${file.name}` })
-        }
-        patch(key, [...(form[key] || []), ...urls])
+    if (kind === 'image') {
+      const blobUrl = URL.createObjectURL(list[0])
+      patch('image', blobUrl)  // preview appears immediately
+      setBusy('image')
+      try {
+        const realUrl = await uploadMedia(list[0], { folder: 'locations' })
+        URL.revokeObjectURL(blobUrl)
+        patch('image', realUrl)
+        setUploadError('')
+      } catch (e) {
+        URL.revokeObjectURL(blobUrl)
+        patch('image', '')
+        setUploadError(e.message || 'Không tải được file lên server.')
+      } finally {
+        setBusy('')
       }
-      setUploadError('')
-    } catch (e) {
-      setUploadError(e.message || 'Không tải được file lên server.')
-    } finally {
-      setBusy('')
+    } else {
+      const key = kind === 'gallery' ? 'gallery' : kind === 'panorama' ? 'panoramas' : 'videos'
+      const folder = kind === 'video' ? 'videos' : kind === 'panorama' ? 'panoramas' : 'gallery'
+      const isVideo = kind === 'video'
+
+      // Snapshot existing items before adding blobs (for rollback on error)
+      const existingItems = form[key] || []
+
+      // Create blob items and show them immediately
+      const blobItems = list.map((f) => ({
+        url: URL.createObjectURL(f),
+        name: f.name,
+        alt: isVideo ? '' : `${form.name || 'Địa điểm'} - ${f.name}`,
+      }))
+      patch(key, [...existingItems, ...blobItems])  // thumbnails appear immediately
+      setBusy(kind)
+
+      try {
+        const realItems = []
+        for (let i = 0; i < list.length; i++) {
+          const realUrl = await uploadMedia(list[i], { folder })
+          URL.revokeObjectURL(blobItems[i].url)
+          realItems.push({
+            url: realUrl,
+            name: list[i].name,
+            alt: isVideo ? '' : `${form.name || 'Địa điểm'} - ${list[i].name}`,
+          })
+        }
+        // Replace blob items with real items — use setForm to get fresh state
+        setForm((current) => ({
+          ...current,
+          [key]: [...(current[key] || []).filter((item) => !blobItems.includes(item)), ...realItems],
+        }))
+        setUploadError('')
+      } catch (e) {
+        // Revoke all blob URLs and roll back to existing items
+        blobItems.forEach((b) => URL.revokeObjectURL(b.url))
+        setForm((current) => ({
+          ...current,
+          [key]: (current[key] || []).filter((item) => !blobItems.includes(item)),
+        }))
+        setUploadError(e.message || 'Không tải được file lên server.')
+      } finally {
+        setBusy('')
+      }
     }
   }
 

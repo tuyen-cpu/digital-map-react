@@ -194,6 +194,7 @@ export default function AdminPage({ mode = 'admin' }) {
   const [localFooter, setLocalFooter] = useState(null)
   const [footerDirty, setFooterDirty] = useState(false)
   const [footerSaving, setFooterSaving] = useState(false)
+  const [logoUploadBusy, setLogoUploadBusy] = useState(false)
   const MAX_SLIDES = 5
 
   // Khởi tạo localSlides khi siteSettings load xong lần đầu
@@ -239,16 +240,26 @@ export default function AdminPage({ mode = 'admin' }) {
   }
   const uploadSlide = async (index, file) => {
     if (!file) return
+    // 1. Size validation FIRST (before createObjectURL)
+    if (file.size > 8 * 1024 * 1024) {
+      showNotice(`Ảnh "${file.name}" vượt quá giới hạn 8 MB. Vui lòng chọn file nhỏ hơn.`, 'error')
+      return
+    }
+    // 2. Store previous image for rollback
+    const previousImage = slides[index]?.image ?? ''
+    // 3. Create blob URL and show preview IMMEDIATELY
+    const blobUrl = URL.createObjectURL(file)
+    updateSlide(index, { image: blobUrl })
+    // 4. Mark busy AFTER preview is shown
     setSlideBusy(index)
     try {
-      if (file.size > 8 * 1024 * 1024) {
-        showNotice(`Ảnh "${file.name}" vượt quá giới hạn 8 MB. Vui lòng chọn file nhỏ hơn.`, 'error')
-        return
-      }
-      const url = await uploadMedia(file, { folder: 'slides' })
-      updateSlide(index, { image: url })
+      const realUrl = await uploadMedia(file, { folder: 'slides' })
+      URL.revokeObjectURL(blobUrl)
+      updateSlide(index, { image: realUrl })
       showNotice('Đã cập nhật ảnh slide.', 'success')
     } catch (e) {
+      URL.revokeObjectURL(blobUrl)
+      updateSlide(index, { image: previousImage })  // roll back
       showNotice(e.message || 'Không tải được ảnh slide.', 'error')
     } finally {
       setSlideBusy(-1)
@@ -285,6 +296,29 @@ export default function AdminPage({ mode = 'admin' }) {
       showNotice(e?.response?.data?.detail || e.message || 'Lỗi khôi phục.', 'error')
     } finally {
       setFooterSaving(false)
+    }
+  }
+
+  const uploadFooterLogo = async (file) => {
+    if (!file) return
+    if (file.size > 8 * 1024 * 1024) {
+      showNotice(`Ảnh "${file.name}" vượt quá giới hạn 8 MB. Vui lòng chọn file nhỏ hơn.`, 'error')
+      return
+    }
+    const blobUrl = URL.createObjectURL(file)
+    updateFooterField('logoUrl', blobUrl)  // preview immediately
+    setLogoUploadBusy(true)
+    try {
+      const realUrl = await uploadMedia(file, { folder: 'logos' })
+      URL.revokeObjectURL(blobUrl)
+      updateFooterField('logoUrl', realUrl)
+      showNotice('Đã cập nhật logo.', 'success')
+    } catch (e) {
+      URL.revokeObjectURL(blobUrl)
+      updateFooterField('logoUrl', '')
+      showNotice(e.message || 'Không tải được logo.', 'error')
+    } finally {
+      setLogoUploadBusy(false)
     }
   }
 
@@ -487,6 +521,17 @@ export default function AdminPage({ mode = 'admin' }) {
                       placeholder="https://... (để trống dùng logo mặc định)"
                       className="flex-1 rounded-xl border border-blue-100 px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"
                     />
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-sm font-black text-brand-700 hover:bg-blue-50">
+                      <Upload size={15} />
+                      {logoUploadBusy ? 'Đang tải...' : 'Chọn ảnh từ máy'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={logoUploadBusy}
+                        onChange={(e) => uploadFooterLogo(e.target.files?.[0])}
+                      />
+                    </label>
                     {localFooter.logoUrl && (
                       <img
                         src={localFooter.logoUrl}
