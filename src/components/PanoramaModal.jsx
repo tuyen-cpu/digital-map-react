@@ -120,11 +120,28 @@ export default function PanoramaModal({ location, onClose }) {
           </div>
         )}
 
-        {panoramas.length > 1 && <>
-          <button type="button" onClick={() => setIndex((value) => (value - 1 + panoramas.length) % panoramas.length)} className="absolute left-4 top-1/2 z-10 rounded-full bg-blue-950/60 p-3 hover:bg-blue-950/80"><ChevronLeft /></button>
-          <button type="button" onClick={() => setIndex((value) => (value + 1) % panoramas.length)} className="absolute right-4 top-1/2 z-10 rounded-full bg-blue-950/60 p-3 hover:bg-blue-950/80"><ChevronRight /></button>
-        </>}
       </div>
+
+      {panoramas.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setIndex((value) => (value - 1 + panoramas.length) % panoramas.length)}
+            className="absolute left-4 top-1/2 z-[2900] -translate-y-1/2 rounded-full bg-blue-950/70 p-3 shadow-lg hover:bg-blue-950/90 transition"
+            aria-label="Ảnh trước"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIndex((value) => (value + 1) % panoramas.length)}
+            className="absolute right-4 top-1/2 z-[2900] -translate-y-1/2 rounded-full bg-blue-950/70 p-3 shadow-lg hover:bg-blue-950/90 transition"
+            aria-label="Ảnh tiếp"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </>
+      )}
     </div>
   )
 }
