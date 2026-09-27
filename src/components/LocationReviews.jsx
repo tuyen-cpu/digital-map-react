@@ -102,7 +102,7 @@ export default function LocationReviews({ location }) {
       <div className="mt-5 grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
         <div>
           {!session && <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-sm leading-6 text-blue-800">Bạn cần <Link to="/dang-nhap" state={{ from: `${route.pathname}${route.search}` }} className="font-black text-brand-700 hover:underline">đăng nhập</Link> để gửi đánh giá hoặc phản hồi.</div>}
-          {session?.role === 'admin' && <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-sm leading-6 text-blue-800">Quản trị viên không chấm sao địa điểm nhưng có thể phản hồi trực tiếp từng đánh giá ở cột bên phải.</div>}
+          
           {['user', 'manager'].includes(session?.role) && !isValidVietnamMobilePhone(session.phone) && <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-sm leading-6 text-blue-800">Tài khoản của bạn chưa có số điện thoại hợp lệ. <Link to="/tai-khoan" className="font-black text-brand-700 hover:underline">Cập nhật tài khoản</Link> trước khi đánh giá.</div>}
           {canRate && (
             <form onSubmit={submit} className="rounded-2xl border border-blue-100 bg-blue-50/35 p-4">
