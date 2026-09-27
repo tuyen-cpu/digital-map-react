@@ -12,47 +12,67 @@ function SphereViewer({ src, caption }) {
   const objectUrlRef = useRef('')
   const [error, setError] = useState('')
 
+  // Resolve src → actual panorama URL, adding cache-buster for HTTP URLs
+  const resolveUrl = async (rawSrc) => {
+    if (isMediaRef(rawSrc)) {
+      const record = await getMediaRecord(rawSrc)
+      if (!record?.blob) throw new Error('Không đọc được ảnh 360° đã lưu.')
+      // revoke previous blob URL before creating new one
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = ''
+      }
+      objectUrlRef.current = URL.createObjectURL(record.blob)
+      return objectUrlRef.current
+    }
+    // For regular HTTP(S) URLs: append cache-buster so browser and PSV texture cache
+    // never serve a stale image after the admin updates the panorama
+    if (rawSrc && (rawSrc.startsWith('http') || rawSrc.startsWith('/'))) {
+      const sep = rawSrc.includes('?') ? '&' : '?'
+      return `${rawSrc}${sep}_t=${Date.now()}`
+    }
+    return rawSrc
+  }
+
   useEffect(() => {
     let cancelled = false
     let rafId = null
 
     async function mount() {
       setError('')
-      let panorama = src
       try {
-        if (isMediaRef(src)) {
-          const record = await getMediaRecord(src)
-          if (!record?.blob) throw new Error('Không đọc được ảnh 360° đã lưu.')
-          objectUrlRef.current = URL.createObjectURL(record.blob)
-          panorama = objectUrlRef.current
-        }
+        const panorama = await resolveUrl(src)
         if (cancelled) return
-        // Đợi 1 frame để container chắc chắn đã render với kích thước thực
+
+        // Wait for container to have real dimensions
         await new Promise((resolve) => { rafId = requestAnimationFrame(resolve) })
         if (cancelled || !hostRef.current) return
-        // Kiểm tra container có kích thước thực chưa
         const { offsetWidth, offsetHeight } = hostRef.current
         if (!offsetWidth || !offsetHeight) {
-          // Thử thêm 1 frame nữa
           await new Promise((resolve) => { rafId = requestAnimationFrame(resolve) })
           if (cancelled || !hostRef.current) return
         }
-        viewerRef.current?.destroy()
-        viewerRef.current = new Viewer({
-          container: hostRef.current,
-          panorama,
-          caption,
-          navbar: ['zoom', 'move', 'caption', 'fullscreen'],
-          defaultZoomLvl: 35,
-          mousewheel: true,
-          mousemove: true,
-          touchmoveTwoFingers: false,
-          mousewheelCtrlKey: false,
-          keyboard: 'always',
-          moveSpeed: 1.3,
-          zoomSpeed: 1.2,
-          fisheye: 0.25
-        })
+
+        if (viewerRef.current) {
+          // Viewer already exists — use setPanorama to avoid flicker and bypass PSV texture cache
+          await viewerRef.current.setPanorama(panorama, { caption })
+        } else {
+          viewerRef.current = new Viewer({
+            container: hostRef.current,
+            panorama,
+            caption,
+            navbar: ['zoom', 'move', 'caption', 'fullscreen'],
+            defaultZoomLvl: 35,
+            mousewheel: true,
+            mousemove: true,
+            touchmoveTwoFingers: false,
+            mousewheelCtrlKey: false,
+            keyboard: 'always',
+            moveSpeed: 1.3,
+            zoomSpeed: 1.2,
+            fisheye: 0.25,
+          })
+        }
       } catch (e) {
         if (!cancelled) setError(e?.message || 'Không mở được ảnh toàn cảnh 360°.')
       }
@@ -62,17 +82,32 @@ function SphereViewer({ src, caption }) {
     return () => {
       cancelled = true
       if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [src, caption])
+
+  // Separate cleanup effect — destroy viewer and revoke blob only on unmount
+  useEffect(() => {
+    return () => {
       viewerRef.current?.destroy()
       viewerRef.current = null
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
-      objectUrlRef.current = ''
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = ''
+      }
     }
-  }, [caption, src])
+  }, [])
 
   return (
     <div className="relative h-full min-h-[340px] w-full overflow-hidden rounded-2xl border border-white/10 bg-blue-950/50 sm:min-h-[520px]">
       <div ref={hostRef} style={{ width: '100%', height: '100%', minHeight: 340 }} />
-      {error && <div className="absolute inset-0 grid place-items-center p-6 text-center"><div className="max-w-lg rounded-2xl bg-blue-950/85 p-5 text-sm leading-6 text-white shadow-2xl">{error}<p className="mt-2 text-xs text-blue-200">Ảnh 360° chuẩn nên là ảnh equirectangular tỉ lệ 2:1. Quản trị viên có thể thay ảnh trong phần sửa địa điểm.</p></div></div>}
+      {error && (
+        <div className="absolute inset-0 grid place-items-center p-6 text-center">
+          <div className="max-w-lg rounded-2xl bg-blue-950/85 p-5 text-sm leading-6 text-white shadow-2xl">
+            {error}
+            <p className="mt-2 text-xs text-blue-200">Ảnh 360° chuẩn nên là ảnh equirectangular tỉ lệ 2:1. Quản trị viên có thể thay ảnh trong phần sửa địa điểm.</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
