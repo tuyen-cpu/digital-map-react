@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Compass, Heart, MapPin } from 'lucide-react'
 import Footer from '../components/Footer'
 import LocationCard from '../components/LocationCard'
@@ -7,6 +7,7 @@ import { useAppState } from '../context/AppStateContext'
 
 export default function FavoritesPage() {
   const { session, favorites, locations, locationsLoaded } = useAppState()
+  const navigate = useNavigate()
 
   // Auth guard
   if (!session) {
@@ -81,7 +82,11 @@ export default function FavoritesPage() {
         {locationsLoaded && favoriteLocations.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {favoriteLocations.map((loc) => (
-              <LocationCard key={loc.id} location={loc} />
+              <LocationCard
+                key={loc.id}
+                location={loc}
+                onSelect={(item) => navigate(`/place.html?id=${encodeURIComponent(item.id)}`)}
+              />
             ))}
           </div>
         )}
