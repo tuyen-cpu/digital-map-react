@@ -27,11 +27,27 @@ export default function AdminReportsPanel({ allowedLocationIds = null, allowUser
   const categoryLabel = (key) => getLiveCat(key)?.label || key || ''
   const now = new Date()
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  // Pending — bound to form controls
+  const [pendingFrom, setPendingFrom] = useState(localInputValue(monthAgo))
+  const [pendingTo, setPendingTo] = useState(localInputValue(now))
+  const [pendingCategory, setPendingCategory] = useState('all')
+  const [pendingReportType, setPendingReportType] = useState('all')
+
+  // Applied — what stats and export actually use
   const [from, setFrom] = useState(localInputValue(monthAgo))
   const [to, setTo] = useState(localInputValue(now))
   const [category, setCategory] = useState('all')
   const [reportType, setReportType] = useState('all')
   const [notice, setNotice] = useState('')
+
+  const filterDirty = pendingFrom !== from || pendingTo !== to || pendingCategory !== category || pendingReportType !== reportType
+
+  const applyFilter = () => {
+    setFrom(pendingFrom)
+    setTo(pendingTo)
+    setCategory(pendingCategory)
+    setReportType(pendingReportType)
+  }
 
   const fromDate = safeDate(from, new Date(0))
   const toDate = safeDate(to, new Date())
@@ -110,10 +126,22 @@ export default function AdminReportsPanel({ allowedLocationIds = null, allowUser
 
       <div className="mt-6 flex items-center gap-2"><Filter size={18} className="text-brand-600" /><h3 className="font-black text-blue-950">Bộ lọc báo cáo</h3></div>
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Từ ngày giờ</span><input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50" /></label>
-        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Đến ngày giờ</span><input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50" /></label>
-        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Danh mục</span><select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Tất cả danh mục</option>{categories.filter((item) => availableCategories.has(item.key)).map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
-        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Nội dung xuất</span><select value={reportType} onChange={(e) => setReportType(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Báo cáo đầy đủ</option><option value="traffic">Truy cập & lượt xem</option><option value="routes">Dẫn đường</option><option value="reviews">Đánh giá</option>{allowUserData && <option value="users">Tài khoản đăng ký</option>}<option value="catalog">Danh mục địa điểm</option></select></label>
+        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Từ ngày giờ</span><input type="datetime-local" value={pendingFrom} onChange={(e) => setPendingFrom(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50" /></label>
+        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Đến ngày giờ</span><input type="datetime-local" value={pendingTo} onChange={(e) => setPendingTo(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50" /></label>
+        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Danh mục</span><select value={pendingCategory} onChange={(e) => setPendingCategory(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Tất cả danh mục</option>{categories.filter((item) => availableCategories.has(item.key)).map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
+        <label className="block"><span className="text-xs font-black uppercase tracking-wide text-blue-600">Nội dung xuất</span><select value={pendingReportType} onChange={(e) => setPendingReportType(e.target.value)} className="mt-2 w-full rounded-xl border border-blue-100 px-3 py-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-50"><option value="all">Báo cáo đầy đủ</option><option value="traffic">Truy cập & lượt xem</option><option value="routes">Dẫn đường</option><option value="reviews">Đánh giá</option>{allowUserData && <option value="users">Tài khoản đăng ký</option>}<option value="catalog">Danh mục địa điểm</option></select></label>
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={applyFilter}
+          disabled={!filterDirty}
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Filter size={15} />
+          Áp dụng bộ lọc
+        </button>
+        {filterDirty && <span className="text-xs text-blue-500">Bộ lọc chưa được áp dụng</span>}
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-blue-50/70 p-4">

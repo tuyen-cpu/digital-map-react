@@ -322,7 +322,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
               <div className="grid aspect-[4/3] overflow-hidden rounded-2xl border border-blue-100 bg-blue-50">{form.image ? <MediaImage src={form.image} alt={form.imageAlt || form.name} className="h-full w-full object-cover" /> : <div className="grid place-items-center text-xs font-bold text-blue-300">Chưa có ảnh</div>}</div>
               <div>
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700"><Upload size={17} />{busy === 'image' ? 'Đang lưu...' : 'Chọn ảnh từ máy'}<input type="file" accept="image/*" className="hidden" disabled={Boolean(busy)} onChange={(e) => saveFiles(e.target.files, 'image')} /></label>
-                <p className="mt-2 text-xs leading-5 text-blue-500">Chỉ dùng ảnh chụp đúng địa điểm. Nếu chưa xác minh được ảnh thì để trống; không dùng một ảnh cho nhiều địa điểm. Ảnh từ máy được lưu trực tiếp trong trình duyệt, giới hạn 8 MB/ảnh.</p>
+                <p className="mt-2 text-xs leading-5 text-blue-500">Giới hạn 8 MB/ảnh.</p>
                 <input className={inputClass} value={form.image || ''} onChange={(e) => patch('image', e.target.value)} placeholder="Hoặc dán URL ảnh..." />
                 <input className={inputClass} value={form.imageAlt || ''} onChange={(e) => patch('imageAlt', e.target.value)} placeholder="Mô tả ảnh (alt)" />
               </div>
