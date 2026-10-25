@@ -4,7 +4,7 @@ import { Link, Navigate } from 'react-router-dom'
 import MediaImage from '../components/MediaImage'
 import VisitedMap from '../components/VisitedMap'
 import { useAppState } from '../context/AppStateContext'
-import { uploadMedia } from '../services/mediaService'
+import { useTemporaryMedia } from '../hooks/useTemporaryMedia'
 import { formatVietnamPhone, isValidVietnamMobilePhone, VIETNAM_PHONE_HELP } from '../utils/phone'
 import { locationMatches } from '../utils/text'
 
@@ -21,6 +21,7 @@ function localInputValue(date) {
 }
 
 export default function ProfilePage() {
+  const { upload: uploadMedia } = useTemporaryMedia()
   const {
     session, updateProfile, locations, currentTravelHistory, recordTravel, removeTravelHistory,
     currentReminders, addReminder, deleteReminder, completeReminder, favorites

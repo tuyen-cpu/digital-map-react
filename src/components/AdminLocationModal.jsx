@@ -1,7 +1,7 @@
 import { ImagePlus, LocateFixed, MapPinned, Plus, Save, Trash2, Upload, Video, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
-import { uploadMedia } from '../services/mediaService'
+import { useTemporaryMedia } from '../hooks/useTemporaryMedia'
 import { getCurrentPosition } from '../services/routing'
 import { useCategories } from '../hooks/useCategories'
 import MediaImage from './MediaImage'
@@ -145,6 +145,8 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
   const [fieldErrors, setFieldErrors] = useState({})
   const [uploadError, setUploadError] = useState('')
   const [busy, setBusy] = useState('')
+  const uploadActive = useRef(false)
+  const { upload: uploadMedia, discard, discardAll } = useTemporaryMedia(open)
   const [showPicker, setShowPicker] = useState(false)
 
   useEffect(() => {
@@ -191,6 +193,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
   }
 
   const useGps = async () => {
+    if (uploadActive.current || busy) return
     setBusy('gps')
     setError('')
     try {
@@ -205,6 +208,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
   }
 
   const saveFiles = async (files, kind) => {
+    if (uploadActive.current || busy) return
     const list = Array.from(files || [])
     if (!list.length) return
     setError('')
@@ -219,6 +223,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
       return
     }
 
+    uploadActive.current = true
     if (kind === 'image') {
       const blobUrl = URL.createObjectURL(list[0])
       patch('image', blobUrl)  // preview appears immediately
@@ -233,6 +238,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
         patch('image', '')
         setUploadError(e.message || 'Không tải được file lên server.')
       } finally {
+        uploadActive.current = false
         setBusy('')
       }
     } else {
@@ -252,10 +258,12 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
       patch(key, [...existingItems, ...blobItems])  // thumbnails appear immediately
       setBusy(kind)
 
+      const uploadedUrls = []
       try {
         const realItems = []
         for (let i = 0; i < list.length; i++) {
           const realUrl = await uploadMedia(list[i], { folder })
+          uploadedUrls.push(realUrl)
           URL.revokeObjectURL(blobItems[i].url)
           realItems.push({
             url: realUrl,
@@ -270,6 +278,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
         }))
         setUploadError('')
       } catch (e) {
+        void discard(uploadedUrls)
         // Revoke all blob URLs and roll back to existing items
         blobItems.forEach((b) => URL.revokeObjectURL(b.url))
         setForm((current) => ({
@@ -278,6 +287,7 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
         }))
         setUploadError(e.message || 'Không tải được file lên server.')
       } finally {
+        uploadActive.current = false
         setBusy('')
       }
     }
@@ -290,8 +300,26 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
     setUrl('')
   }
 
-  const submit = (event) => {
+  const closeWithoutSaving = async () => {
+    if (uploadActive.current || busy) return
+    uploadActive.current = true
+    setBusy('cleanup')
+    setError('')
+    try {
+      await discardAll()
+      onClose?.()
+    } catch (e) {
+      setError('Chưa dọn được ảnh tạm. Vui lòng kiểm tra kết nối và bấm Hủy để thử lại.')
+    } finally {
+      uploadActive.current = false
+      setBusy('')
+    }
+  }
+
+  const submit = async (event) => {
     event.preventDefault()
+    if (uploadActive.current || busy) return
+    if ([form.image, ...['gallery', 'panoramas', 'videos'].flatMap((key) => (form[key] || []).map((item) => item.url))].some((url) => url?.startsWith('blob:'))) return
     const errs = {}
     if (!form.name.trim()) errs.name = 'Hãy nhập tên địa điểm.'
     if (!form.address.trim()) errs.address = 'Hãy nhập địa chỉ.'
@@ -302,19 +330,24 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
       return
     }
     setFieldErrors({})
+    uploadActive.current = true
+    setBusy('save')
     try {
-      onSave?.({ ...form, oldArea: null, plusCode: null })
+      await onSave?.({ ...form, oldArea: null, plusCode: null })
     } catch (e) {
       setError(e.message || 'Không thể lưu địa điểm.')
+    } finally {
+      uploadActive.current = false
+      setBusy('')
     }
   }
 
   return (
-    <div className="fixed inset-0 z-[2200] grid place-items-center overflow-y-auto bg-blue-950/55 p-2 backdrop-blur-sm sm:p-5" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
+    <div className="fixed inset-0 z-[2200] grid place-items-center overflow-y-auto bg-blue-950/55 p-2 backdrop-blur-sm sm:p-5" onMouseDown={(e) => e.target === e.currentTarget && closeWithoutSaving()}>
       <form onSubmit={submit} className="my-auto flex max-h-[96dvh] w-full max-w-5xl flex-col overflow-hidden rounded-[1.5rem] border border-blue-100 bg-white shadow-2xl sm:max-h-[94dvh] sm:rounded-[1.75rem]">
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-blue-100 px-4 py-4 sm:px-6">
           <div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-brand-600">Quản trị địa điểm</p><h2 className="mt-1 text-xl font-black text-blue-950 sm:text-2xl">{location ? `Sửa: ${location.name}` : 'Thêm địa điểm mới'}</h2></div>
-          <button type="button" onClick={onClose} className="rounded-xl border border-blue-100 p-2 text-blue-500 hover:bg-blue-50"><X size={19} /></button>
+          <button type="button" disabled={Boolean(busy)} onClick={closeWithoutSaving} className="rounded-xl border border-blue-100 p-2 text-blue-500 hover:bg-blue-50"><X size={19} /></button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
@@ -370,17 +403,17 @@ export default function AdminLocationModal({ open, location, allLocations = [], 
             </div>
           </div>
 
-          <MediaManager title="Thư viện nhiều ảnh" hint="Có thể chọn nhiều ảnh cùng lúc." icon={ImagePlus} items={form.gallery} onFiles={(files) => saveFiles(files, 'gallery')} accept="image/*" busy={busy === 'gallery'} onChange={(items) => patch('gallery', items)} addUrl={addUrl} fieldKey="gallery" />
-          <MediaManager title="Ảnh toàn cảnh 360°" hint="Nên dùng ảnh equirectangular 2:1. Trình xem hỗ trợ kéo ngang, dọc và zoom." icon={ImagePlus} items={form.panoramas} onFiles={(files) => saveFiles(files, 'panorama')} accept="image/*" busy={busy === 'panorama'} onChange={(items) => patch('panoramas', items)} addUrl={addUrl} fieldKey="panoramas" />
-          <MediaManager title="Video ngắn" hint="Hỗ trợ upload MP4/WebM/Ogg (tối đa 40 MB) hoặc dán link YouTube." icon={Video} items={form.videos} onFiles={(files) => saveFiles(files, 'video')} accept="video/mp4,video/webm,video/ogg" busy={busy === 'video'} onChange={(items) => patch('videos', items)} addUrl={addUrl} fieldKey="videos" kind="video" />
+          <MediaManager title="Thư viện nhiều ảnh" hint="Có thể chọn nhiều ảnh cùng lúc." icon={ImagePlus} items={form.gallery} onFiles={(files) => saveFiles(files, 'gallery')} accept="image/*" busy={Boolean(busy)} onChange={(items) => patch('gallery', items)} addUrl={addUrl} fieldKey="gallery" />
+          <MediaManager title="Ảnh toàn cảnh 360°" hint="Nên dùng ảnh equirectangular 2:1. Trình xem hỗ trợ kéo ngang, dọc và zoom." icon={ImagePlus} items={form.panoramas} onFiles={(files) => saveFiles(files, 'panorama')} accept="image/*" busy={Boolean(busy)} onChange={(items) => patch('panoramas', items)} addUrl={addUrl} fieldKey="panoramas" />
+          <MediaManager title="Video ngắn" hint="Hỗ trợ upload MP4/WebM/Ogg (tối đa 40 MB) hoặc dán link YouTube." icon={Video} items={form.videos} onFiles={(files) => saveFiles(files, 'video')} accept="video/mp4,video/webm,video/ogg" busy={Boolean(busy)} onChange={(items) => patch('videos', items)} addUrl={addUrl} fieldKey="videos" kind="video" />
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-blue-100 bg-white px-4 py-3 sm:px-6">
           {uploadError && (
             <p className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">{uploadError}</p>
           )}
-          {location && onDelete ? <button type="button" onClick={() => onDelete(location)} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-black text-blue-700 hover:bg-blue-50"><Trash2 size={17} />Xóa địa điểm</button> : <span />}
-          <div className="ml-auto flex gap-2"><button type="button" onClick={onClose} className="rounded-xl border border-blue-100 px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50">Hủy</button><button type="submit" disabled={Boolean(busy)} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700 disabled:opacity-50"><Save size={17} />Lưu thay đổi</button></div>
+          {location && onDelete ? <button type="button" disabled={Boolean(busy)} onClick={() => !uploadActive.current && onDelete(location)} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-black text-blue-700 hover:bg-blue-50"><Trash2 size={17} />Xóa địa điểm</button> : <span />}
+          <div className="ml-auto flex gap-2"><button type="button" disabled={Boolean(busy)} onClick={closeWithoutSaving} className="rounded-xl border border-blue-100 px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50">Hủy</button><button type="submit" disabled={Boolean(busy)} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700 disabled:opacity-50"><Save size={17} />Lưu thay đổi</button></div>
         </div>
       </form>
     </div>

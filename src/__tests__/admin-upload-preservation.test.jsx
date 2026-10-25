@@ -31,6 +31,7 @@ vi.mock('../services/api', () => ({
 // ---------------------------------------------------------------------------
 vi.mock('../services/mediaService', () => ({
   uploadMedia: vi.fn(() => Promise.resolve('https://cdn.example.com/uploaded.jpg')),
+  discardPendingMedia: vi.fn(() => Promise.resolve()),
   deleteMedia: vi.fn(() => Promise.resolve()),
 }))
 

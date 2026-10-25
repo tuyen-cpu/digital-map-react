@@ -33,6 +33,7 @@ vi.mock('react-leaflet', () => ({
 // ---------------------------------------------------------------------------
 vi.mock('../services/mediaService', () => ({
   uploadMedia: vi.fn(() => new Promise(() => {})), // never resolves
+  discardPendingMedia: vi.fn(() => Promise.resolve()),
   deleteMedia: vi.fn(() => Promise.resolve()),
 }))
 
@@ -296,6 +297,9 @@ describe('Bug 2 — AdminLocationModal: gallery thumbnails appear immediately on
 
     // This assertion FAILS on unfixed code: blobImages.length === 0, not 2
     expect(blobImages.length).toBe(2)
+    // A pending gallery upload must lock every upload group and saving.
+    for (const input of fileInputs) expect(input).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Lưu thay đổi/i })).toBeDisabled()
   })
 })
 

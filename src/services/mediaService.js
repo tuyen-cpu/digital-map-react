@@ -47,3 +47,12 @@ export async function deleteMedia(urlOrKey) {
     // Ignore — không chặn flow nếu xóa fail
   }
 }
+
+
+/** Delete only the current user's pending uploads; attached assets are protected. */
+export async function discardPendingMedia(urls) {
+  const uniqueUrls = [...new Set(urls)].filter(Boolean)
+  for (let i = 0; i < uniqueUrls.length; i += 100) {
+    await api.post('/media/discard/', { urls: uniqueUrls.slice(i, i + 100) })
+  }
+}

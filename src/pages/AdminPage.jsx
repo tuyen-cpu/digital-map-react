@@ -11,7 +11,7 @@ import MediaImage from '../components/MediaImage'
 import { useDebounce } from '../hooks/useDebounce'
 import { useAppState } from '../context/AppStateContext'
 import { useCategories } from '../hooks/useCategories'
-import { uploadMedia } from '../services/mediaService'
+import { useTemporaryMedia } from '../hooks/useTemporaryMedia'
 import { CATEGORIES, getCategory } from '../utils/categories'
 import { hasCoordinates } from '../utils/format'
 import { formatVietnamPhone } from '../utils/phone'
@@ -26,6 +26,7 @@ function dateTime(value) {
 
 
 export default function AdminPage({ mode = 'admin' }) {
+  const { upload: uploadMedia } = useTemporaryMedia()
   const {
     session, login, logout, users, deleteUser, updateUserAccount, resetUserPassword,
     locations, addLocation, updateLocation, deleteLocation, canManageLocation, canManageCategory,
@@ -213,7 +214,7 @@ export default function AdminPage({ mode = 'admin' }) {
   const slides = localSlides ?? siteSettings?.heroSlides ?? []
 
   const updateSlide = (index, patch) => {
-    setLocalSlides(slides.map((slide, i) => i === index ? { ...slide, ...patch } : slide))
+    setLocalSlides((current) => (current ?? slides).map((slide, i) => i === index ? { ...slide, ...patch } : slide))
     setSlidesDirty(true)
   }
   const removeSlide = (index) => {
@@ -226,6 +227,7 @@ export default function AdminPage({ mode = 'admin' }) {
     setSlidesDirty(true)
   }
   const saveSlides = async () => {
+    if (slideBusy >= 0 || slides.some((slide) => slide.image?.startsWith('blob:'))) return
     setSlidesSaving(true)
     try {
       const result = await updateSiteSettings({ heroSlides: slides })
@@ -272,6 +274,7 @@ export default function AdminPage({ mode = 'admin' }) {
   }
 
   const saveFooter = async () => {
+    if (logoUploadBusy || localFooter?.logoUrl?.startsWith('blob:')) return
     setFooterSaving(true)
     try {
       await updateSiteSettings({ footer: localFooter })
@@ -406,13 +409,13 @@ export default function AdminPage({ mode = 'admin' }) {
                 <Plus size={17} />Thêm slide {slides.length >= MAX_SLIDES ? `(đủ ${MAX_SLIDES})` : `(${slides.length}/${MAX_SLIDES})`}
               </button>
               {slidesDirty && (
-                <button type="button" onClick={saveSlides} disabled={slidesSaving} className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-black text-white hover:bg-green-700 disabled:opacity-60">
+                <button type="button" onClick={saveSlides} disabled={slidesSaving || slideBusy >= 0} className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-black text-white hover:bg-green-700 disabled:opacity-60">
                   {slidesSaving ? 'Đang lưu...' : 'Lưu'}
                 </button>
               )}
             </div>
           </div>
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">{slides.map((slide, index) => <div key={slide.id || index} className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/35"><div className="relative aspect-[16/7] bg-blue-100">{slide.image ? <MediaImage src={slide.image} alt={slide.title || ''} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-blue-300"><Image size={30} /></div>}<button type="button" onClick={() => removeSlide(index)} className="absolute right-2 top-2 rounded-lg bg-white/90 p-2 text-blue-700 shadow hover:bg-white" title="Xóa slide"><Trash2 size={16} /></button></div><div className="space-y-3 p-4"><label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-black text-brand-700 hover:bg-blue-50"><Upload size={15} />{slideBusy === index ? 'Đang lưu...' : 'Chọn ảnh từ máy'}<input type="file" accept="image/*" className="hidden" disabled={slideBusy >= 0} onChange={(e) => uploadSlide(index, e.target.files?.[0])} /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">URL / tham chiếu ảnh</span><input value={slide.image || ''} onChange={(e) => updateSlide(index, { image: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-xs outline-none focus:border-brand-300" /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Tiêu đề</span><input value={slide.title || ''} onChange={(e) => updateSlide(index, { title: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-sm outline-none focus:border-brand-300" /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Mô tả</span><input value={slide.caption || ''} onChange={(e) => updateSlide(index, { caption: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-sm outline-none focus:border-brand-300" /></label></div></div>)}</div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">{slides.map((slide, index) => <div key={slide.id || index} className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/35"><div className="relative aspect-[16/7] bg-blue-100">{slide.image ? <MediaImage src={slide.image} alt={slide.title || ''} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-blue-300"><Image size={30} /></div>}<button type="button" disabled={slideBusy >= 0} onClick={() => removeSlide(index)} className="absolute right-2 top-2 rounded-lg bg-white/90 p-2 text-blue-700 shadow hover:bg-white" title="Xóa slide"><Trash2 size={16} /></button></div><div className="space-y-3 p-4"><label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-black text-brand-700 hover:bg-blue-50"><Upload size={15} />{slideBusy === index ? 'Đang lưu...' : 'Chọn ảnh từ máy'}<input type="file" accept="image/*" className="hidden" disabled={slideBusy >= 0} onChange={(e) => uploadSlide(index, e.target.files?.[0])} /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">URL / tham chiếu ảnh</span><input value={slide.image || ''} onChange={(e) => updateSlide(index, { image: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-xs outline-none focus:border-brand-300" /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Tiêu đề</span><input value={slide.title || ''} onChange={(e) => updateSlide(index, { title: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-sm outline-none focus:border-brand-300" /></label><label className="block"><span className="text-[10px] font-black uppercase tracking-wide text-blue-500">Mô tả</span><input value={slide.caption || ''} onChange={(e) => updateSlide(index, { caption: e.target.value })} className="mt-1.5 w-full rounded-lg border border-blue-100 px-3 py-2 text-sm outline-none focus:border-brand-300" /></label></div></div>)}</div>
         </section>}
 
         {isAdmin && tab === 'footer' && (
@@ -427,7 +430,7 @@ export default function AdminPage({ mode = 'admin' }) {
                 <button
                   type="button"
                   onClick={resetFooter}
-                  disabled={footerSaving}
+                  disabled={footerSaving || logoUploadBusy}
                   className="inline-flex items-center gap-2 rounded-xl border border-blue-200 px-4 py-2.5 text-sm font-black text-blue-700 hover:bg-blue-50 disabled:opacity-50"
                 >
                   <RotateCcw size={15} />Khôi phục mặc định
@@ -436,7 +439,7 @@ export default function AdminPage({ mode = 'admin' }) {
                   <button
                     type="button"
                     onClick={saveFooter}
-                    disabled={footerSaving}
+                    disabled={footerSaving || logoUploadBusy}
                     className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-black text-white hover:bg-green-700 disabled:opacity-60"
                   >
                     {footerSaving ? 'Đang lưu...' : 'Lưu'}
