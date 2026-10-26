@@ -7,7 +7,19 @@ import { isValidVietnamMobilePhone } from '../utils/phone'
 import { apiGetReviews } from '../services/reviewService'
 
 function Stars({ value = 0, size = 16 }) {
-  return <span className="inline-flex items-center gap-0.5" aria-label={`${value} trên 5 sao`}>{[1, 2, 3, 4, 5].map((star) => <Star key={star} size={size} className={star <= Math.round(value) ? 'fill-sky-400 text-sky-400' : 'text-blue-100'} />)}</span>
+  const { session } = useAppState()
+  const route = useLocation()
+  const stars = <span className="inline-flex items-center gap-0.5" aria-label={`${value} trên 5 sao`}>{[1, 2, 3, 4, 5].map((star) => <Star key={star} size={size} className={star <= Math.round(value) ? 'fill-sky-400 text-sky-400' : 'text-blue-100'} />)}</span>
+  return session ? stars : (
+    <Link
+      to="/dang-nhap"
+      state={{ from: `${route.pathname}${route.search}${route.hash}` }}
+      aria-label="Đăng nhập để đánh giá"
+      className="inline-flex rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+    >
+      {stars}
+    </Link>
+  )
 }
 
 function ReviewReplyBox({ review, autoOpen = false }) {

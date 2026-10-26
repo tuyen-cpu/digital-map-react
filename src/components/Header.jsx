@@ -1,3 +1,4 @@
+import { getSiteLogo } from '../utils/siteBranding'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, NavLink, useLocation } from 'react-router-dom'
@@ -70,6 +71,7 @@ export default function Header() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const {
     session,
+    siteSettings,
     logout,
     reviewNotifications = [],
     unreadReviewNotifications = [],
@@ -122,7 +124,7 @@ export default function Header() {
         <aside className="absolute inset-y-0 right-0 flex w-[min(90vw,390px)] max-w-full flex-col overflow-hidden bg-white shadow-2xl">
           <div className="flex h-20 shrink-0 items-center gap-3 border-b border-slate-200 px-4">
             <Link to="/" className="flex min-w-0 items-center gap-3" onClick={() => setOpen(false)}>
-              <img src="/logo-binh-dinh.png" alt="Logo Bình Định" className="h-12 w-12 shrink-0 rounded-full object-cover shadow-card ring-2 ring-sky-300/80" />
+              <img src={getSiteLogo(siteSettings)} alt="Logo Bình Định" className="h-12 w-12 shrink-0 rounded-full object-cover shadow-card ring-2 ring-sky-300/80" />
               <div className="min-w-0"><p className="truncate text-lg font-black tracking-wide text-brand-800">BÌNH ĐỊNH</p><p className="truncate text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">Bản đồ du lịch số</p></div>
             </Link>
             <button type="button" onClick={() => setOpen(false)} className="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:bg-slate-100" aria-label="Đóng menu"><X size={23} /></button>
@@ -178,7 +180,7 @@ export default function Header() {
       <header className="sticky top-0 z-[1000] border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-20 w-full max-w-[1600px] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex min-w-0 items-center gap-3" onClick={() => setOpen(false)}>
-            <img src="/logo-binh-dinh.png" alt="Logo Bình Định" className="h-14 w-14 shrink-0 rounded-full object-cover shadow-card ring-2 ring-sky-300/80" />
+            <img src={getSiteLogo(siteSettings)} alt="Logo Bình Định" className="h-14 w-14 shrink-0 rounded-full object-cover shadow-card ring-2 ring-sky-300/80" />
             <div className="min-w-0"><p className="truncate text-lg font-black tracking-wide text-brand-800 sm:text-xl">BÌNH ĐỊNH</p><p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs sm:tracking-[0.16em]">Bản đồ du lịch số</p></div>
           </Link>
 

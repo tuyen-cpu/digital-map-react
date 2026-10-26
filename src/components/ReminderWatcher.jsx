@@ -1,8 +1,9 @@
+import { getSiteLogo } from '../utils/siteBranding'
 import { useEffect } from 'react'
 import { useAppState } from '../context/AppStateContext'
 
 export default function ReminderWatcher() {
-  const { session, currentReminders, locations, markReminderNotified } = useAppState()
+  const { siteSettings, session, currentReminders, locations, markReminderNotified } = useAppState()
 
   useEffect(() => {
     if (!session || !['user', 'manager'].includes(session.role)) return undefined
@@ -16,7 +17,7 @@ export default function ReminderWatcher() {
         const title = `Lịch nhắc: ${location?.name || 'địa điểm'}`
         const body = reminder.note || 'Đã đến thời gian bạn đặt lịch.'
         if ('Notification' in window && Notification.permission === 'granted') {
-          try { new Notification(title, { body, icon: '/logo-binh-dinh.png' }) } catch {}
+          try { new Notification(title, { body, icon: getSiteLogo(siteSettings) }) } catch {}
         }
         markReminderNotified(reminder.id)
       })
@@ -24,7 +25,7 @@ export default function ReminderWatcher() {
     check()
     const timer = window.setInterval(check, 30000)
     return () => window.clearInterval(timer)
-  }, [currentReminders, locations, markReminderNotified, session])
+  }, [currentReminders, locations, markReminderNotified, session, siteSettings])
 
   return null
 }

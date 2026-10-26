@@ -377,3 +377,26 @@ describe('Bug 4 — AdminPage footer: logo field should have a file input button
     ).toBeGreaterThan(0)
   })
 })
+
+
+describe('Footer reset', () => {
+  it('shows the restored fields immediately without reloading', async () => {
+    mockSearchParams = new URLSearchParams({ tab: 'footer' })
+    const restoredFooter = { ...MOCK_SITE_SETTINGS.footer, orgName: 'BÌNH ĐỊNH', phone: '0914.1178.00' }
+    mockAppState.resetSiteSettings.mockResolvedValueOnce({ ...MOCK_SITE_SETTINGS, footer: restoredFooter })
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const { container, unmount } = renderWithRouter(<AdminPage mode="admin" />)
+    try {
+      const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.includes('Khôi phục mặc định'))
+      fireEvent.click(button)
+      await waitFor(() => {
+        expect(container.querySelector('input[value="BÌNH ĐỊNH"]')).toBeTruthy()
+        expect(container.querySelector('input[value="0914.1178.00"]')).toBeTruthy()
+      })
+      expect(mockAppState.resetSiteSettings).toHaveBeenCalled()
+    } finally {
+      confirm.mockRestore()
+      unmount()
+    }
+  })
+})

@@ -416,6 +416,7 @@ export function ApiStateProvider({ children }) {
   const resetSiteSettings = async () => {
     const updated = await apiResetSiteConfig()
     setSiteSettings(updated)
+    return updated
   }
 
   // ---------------------------------------------------------------------------

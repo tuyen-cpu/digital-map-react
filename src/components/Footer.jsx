@@ -1,3 +1,4 @@
+import { getSiteLogo } from '../utils/siteBranding'
 import { Clock3, Mail, MapPin, Phone } from 'lucide-react'
 import { useAppState } from '../context/AppStateContext'
 
@@ -22,7 +23,7 @@ export default function Footer() {
       raw[key] != null && raw[key] !== '' ? raw[key] : def,
     ])
   )
-  const logoSrc = f.logoUrl || '/logo-binh-dinh.png'
+  const logoSrc = getSiteLogo(siteSettings)
 
   return (
     <footer className="border-t border-slate-200 bg-blue-950 text-slate-300">

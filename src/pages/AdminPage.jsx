@@ -28,7 +28,7 @@ function dateTime(value) {
 export default function AdminPage({ mode = 'admin' }) {
   const { upload: uploadMedia } = useTemporaryMedia()
   const {
-    session, login, logout, users, deleteUser, updateUserAccount, resetUserPassword,
+    session, login, users, deleteUser, updateUserAccount, resetUserPassword,
     locations, addLocation, updateLocation, deleteLocation, canManageLocation, canManageCategory,
     reviews, replyToReview, deleteReview, analyticsEvents, clearAnalytics, siteSettings, siteSettingsLoaded, updateSiteSettings, resetSiteSettings,
     unreadReviewNotifications, markReviewNotificationsRead
@@ -341,12 +341,7 @@ export default function AdminPage({ mode = 'admin' }) {
   return (
     <main className="min-h-[calc(100dvh-5rem)] bg-blue-50/45 px-3 py-6 sm:px-5 sm:py-8 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div><p className="text-xs font-black uppercase tracking-[0.18em] text-brand-700">{isAdmin ? 'Quản trị' : 'Khu vực quản lý'}</p><h1 className="mt-2 text-2xl font-black text-blue-950 sm:text-3xl">{isAdmin ? 'Quản lý nội dung website' : 'Quản lý phạm vi được cấp'}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-blue-700/70">{isAdmin ? '' : 'Bạn chỉ có thể thêm/sửa/xóa các địa điểm thuộc danh mục hoặc nhóm đã được quản trị viên cấp quyền.'}</p></div>
-          <button type="button" onClick={logout} className="rounded-xl border border-blue-100 bg-white px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50">{isAdmin ? 'Đăng xuất quản trị' : 'Đăng xuất quản lý'}</button>
-        </div>
-
-        <div className="mt-6 flex gap-2 overflow-x-auto rounded-2xl border border-blue-100 bg-white p-2 shadow-card">
+        <div className="flex gap-2 overflow-x-auto rounded-2xl border border-blue-100 bg-white p-2 shadow-card">
           {tabs.map(({ key, label, icon: Icon }) => <button key={key} type="button" onClick={() => selectTab(key)} className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-black transition ${tab === key ? 'bg-brand-600 text-white shadow-sm' : 'text-blue-700 hover:bg-blue-50'}`}><Icon size={16} />{label}</button>)}
         </div>
 
@@ -358,7 +353,7 @@ export default function AdminPage({ mode = 'admin' }) {
             {[[Database, stats.total, isAdmin ? 'Tổng địa điểm' : 'Địa điểm được quản lý'], [MapPin, stats.gps, 'Có tọa độ GPS'], [Building2, stats.administration, 'Cơ quan hành chính'], [Users, isAdmin ? stats.users : 1, isAdmin ? 'Tài khoản' : 'Tài khoản quản lý'], [Star, stats.reviews, 'Đánh giá']].map(([Icon, value, label]) => <div key={label} className="rounded-2xl border border-blue-100 bg-white p-5 shadow-card"><Icon size={22} className="text-brand-600" /><p className="mt-3 text-3xl font-black text-blue-950">{value}</p><p className="mt-1 text-sm text-blue-700/65">{label}</p></div>)}
           </div>
 
-          <div className="mt-5 rounded-2xl border border-blue-200 bg-white p-4 text-sm leading-6 text-blue-900 shadow-card"><div className="flex items-start gap-3"><KeyRound className="mt-0.5 shrink-0 text-brand-600" size={19} /><p>{isAdmin ? 'Ảnh, ảnh 360° và video tải từ máy được lưu bằng IndexedDB trên trình duyệt. Báo cáo Excel đã được đưa thành một mục ngay trong trang quản trị.' : `Phạm vi hiện tại: ${[...(session.permissions?.categories || []), ...(session.permissions?.groups || []), ...(session.permissions?.subgroups || [])].join(' · ') || 'chưa được cấp nhóm cụ thể'}.`}</p></div></div>
+          {!isAdmin && <div className="mt-5 rounded-2xl border border-blue-200 bg-white p-4 text-sm leading-6 text-blue-900 shadow-card"><div className="flex items-start gap-3"><KeyRound className="mt-0.5 shrink-0 text-brand-600" size={19} /><p>{`Phạm vi hiện tại: ${[...(session.permissions?.categories || []), ...(session.permissions?.groups || []), ...(session.permissions?.subgroups || [])].join(' · ') || 'chưa được cấp nhóm cụ thể'}.`}</p></div></div>}
 
           <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-4 shadow-card sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.15em] text-brand-600">Thống kê</p><h2 className="mt-1 text-2xl font-black text-blue-950">{isAdmin ? 'Hoạt động website' : 'Hoạt động trong phạm vi quản lý'}</h2></div>{isAdmin && <button type="button" onClick={() => { if (window.confirm('Xóa toàn bộ dữ liệu thống kê cục bộ?')) { clearAnalytics().then(() => showNotice('Đã xóa thống kê.', 'success')).catch(() => {}) } }} className="rounded-xl border border-blue-100 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50">Xóa thống kê</button>}</div>
@@ -516,7 +511,7 @@ export default function AdminPage({ mode = 'admin' }) {
                 </label>
 
                 <label className="block md:col-span-2">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">URL logo tùy chỉnh</span>
+                  <span className="text-[10px] font-black uppercase tracking-wide text-blue-500">URL logo chung toàn trang</span>
                   <div className="mt-1.5 flex items-center gap-3">
                     <input
                       value={localFooter.logoUrl ?? ''}

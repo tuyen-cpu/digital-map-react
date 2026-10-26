@@ -1,6 +1,10 @@
+import { useAppState } from '../context/AppStateContext'
+import { getSiteLogo } from '../utils/siteBranding'
 import { Bookmark, Map, Route, Sparkles } from 'lucide-react'
 
 export default function AuthShell({ eyebrow, title, description, children, admin = false }) {
+  const { siteSettings } = useAppState()
+
   return (
     <div className="min-h-[calc(100dvh-5rem)] bg-gradient-to-br from-white via-blue-50/70 to-sky-100/60 px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-soft lg:grid-cols-[1fr_.9fr]">
@@ -14,7 +18,7 @@ export default function AuthShell({ eyebrow, title, description, children, admin
           <div className="absolute inset-0 opacity-35 [background:radial-gradient(circle_at_80%_15%,#7dd3fc,transparent_32%),radial-gradient(circle_at_20%_80%,#60a5fa,transparent_40%)]" />
           <div className="relative">
             <div className="inline-flex rounded-full bg-white p-2 shadow-lg ring-1 ring-white/60">
-              <img src="/logo-binh-dinh.png" alt="Logo Bình Định" className="h-20 w-20 rounded-full object-cover" />
+              <img src={getSiteLogo(siteSettings)} alt="Logo Bình Định" className="h-20 w-20 rounded-full object-cover" />
             </div>
             <h2 className="mt-7 whitespace-pre-line text-3xl font-black">{admin ? 'Quản lý nội dung tập trung' : 'Phường Bình Định\nKhám phá điểm đến dễ hơn'}</h2>
             <p className="mt-4 text-sm leading-6 text-blue-100">{admin ? 'Quản lý địa điểm, hình ảnh, không gian 360° và nội dung giới thiệu trong một giao diện thống nhất.' : 'Lưu địa điểm yêu thích, mở bản đồ nhanh và chuẩn bị hành trình theo nhu cầu của bạn.'}</p>
